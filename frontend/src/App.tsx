@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import Clients from './pages/Clients';
+import Projects from './pages/Projects';
+import Reports from './pages/Reports';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
+  const [currentPage, setCurrentPage] = useState('Dashboard');
 
   if (loading) {
     return (
@@ -17,7 +22,33 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return user ? <Dashboard /> : <Login />;
+  if (!user) {
+    return <Login />;
+  }
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'Dashboard':
+        return <Dashboard />;
+      case 'Clients':
+        return <Clients />;
+      case 'Projects':
+        return <Projects />;
+      case 'Reports':
+        return <Reports />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+      <main className="flex-1 ml-64">
+        {renderPage()}
+      </main>
+    </div>
+  );
 };
 
 function App() {
