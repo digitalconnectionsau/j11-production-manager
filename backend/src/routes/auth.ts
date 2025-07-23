@@ -45,22 +45,19 @@ router.post('/login', async (req, res) => {
 
     const foundUser = user[0];
 
-    // Check if user is active
-    if (!foundUser.isActive) {
-      return res.status(401).json({ error: 'Account is deactivated' });
-    }
-
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, foundUser.password);
-    if (!isValidPassword) {
+    const isPasswordValid = await bcrypt.compare(password, foundUser.password);
+
+    if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
+    const fullName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || foundUser.email;
     const token = generateToken({
       id: foundUser.id,
       email: foundUser.email,
-      name: foundUser.name,
+      name: fullName,
     });
 
     res.json({
@@ -68,9 +65,9 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: foundUser.id,
-        name: foundUser.name,
+        name: fullName,
         email: foundUser.email,
-        isActive: foundUser.isActive,
+        role: foundUser.role,
       }
     });
   } catch (error) {

@@ -7,12 +7,13 @@ export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high'
 // Users table
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
+  username: varchar('username', { length: 100 }),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
   password: varchar('password', { length: 255 }).notNull(),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+  role: varchar('role', { length: 50 }).default('user'),
+  mobile: varchar('mobile', { length: 20 }),
 });
 
 // Production tasks table
