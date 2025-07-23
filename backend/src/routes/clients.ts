@@ -26,24 +26,15 @@ router.get('/', authenticateToken, async (req, res) => {
       .from(clients)
       .orderBy(desc(clients.createdAt));
 
-    // Get project counts for each client
-    const clientsWithProjectCounts = await Promise.all(
-      allClients.map(async (client) => {
-        const projectCount = await db
-          .select({ count: projects.id })
-          .from(projects)
-          .where(eq(projects.clientId, client.id));
-        
-        return {
-          ...client,
-          projects: projectCount.length,
-          lastContact: client.updatedAt?.toISOString().split('T')[0] || client.createdAt?.toISOString().split('T')[0],
-          status: client.isActive ? 'Active' : 'Inactive'
-        };
-      })
-    );
+    // Transform data for frontend
+    const clientsWithMetadata = allClients.map(client => ({
+      ...client,
+      projects: 0, // TODO: Add project count query
+      lastContact: client.updatedAt?.toISOString().split('T')[0] || client.createdAt?.toISOString().split('T')[0],
+      status: client.isActive ? 'Active' : 'Inactive'
+    }));
 
-    res.json(clientsWithProjectCounts);
+    res.json(clientsWithMetadata);
   } catch (error) {
     console.error('Error fetching clients:', error);
     res.status(500).json({ error: 'Failed to fetch clients' });
