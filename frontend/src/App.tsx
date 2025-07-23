@@ -4,12 +4,14 @@ import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
+import ClientDetails from './pages/ClientDetails';
 import Projects from './pages/Projects';
 import Reports from './pages/Reports';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('Dashboard');
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -26,12 +28,23 @@ const AppContent: React.FC = () => {
     return <Login />;
   }
 
+  const handleClientSelect = (clientId: number) => {
+    setSelectedClientId(clientId);
+  };
+
+  const handleBackToClients = () => {
+    setSelectedClientId(null);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'Dashboard':
         return <Dashboard />;
       case 'Clients':
-        return <Clients />;
+        if (selectedClientId) {
+          return <ClientDetails clientId={selectedClientId} onBack={handleBackToClients} />;
+        }
+        return <Clients onClientSelect={handleClientSelect} />;
       case 'Projects':
         return <Projects />;
       case 'Reports':

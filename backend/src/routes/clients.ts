@@ -56,7 +56,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
 
-    res.json(client[0]);
+    // Transform data for frontend consistency
+    const clientWithMetadata = {
+      ...client[0],
+      projects: 0, // TODO: Add project count query
+      lastContact: client[0].updatedAt?.toISOString().split('T')[0] || client[0].createdAt?.toISOString().split('T')[0],
+      status: client[0].isActive ? 'Active' : 'Inactive'
+    };
+
+    res.json(clientWithMetadata);
   } catch (error) {
     console.error('Error fetching client:', error);
     res.status(500).json({ error: 'Failed to fetch client' });

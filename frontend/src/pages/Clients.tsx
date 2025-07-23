@@ -16,7 +16,11 @@ interface Client {
   lastContact: string;
 }
 
-const Clients: React.FC = () => {
+interface ClientsProps {
+  onClientSelect: (clientId: number) => void;
+}
+
+const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
@@ -412,7 +416,11 @@ const Clients: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
+                <tr 
+                  key={client.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => onClientSelect(client.id)}
+                >
                   <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{client.name}</div>
@@ -444,11 +452,20 @@ const Clients: React.FC = () => {
                     {client.lastContact}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    <button className="text-blue-600 hover:text-blue-900 mr-3">
+                    <button 
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Edit functionality - to be implemented
+                      }}
+                    >
                       Edit
                     </button>
                     <button 
-                      onClick={() => deleteClient(client.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteClient(client.id);
+                      }}
                       className="text-red-600 hover:text-red-900"
                     >
                       Delete
