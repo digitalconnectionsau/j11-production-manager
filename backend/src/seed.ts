@@ -25,13 +25,16 @@ async function seedAdminUser() {
     
     // Create admin user
     const adminUser = await db.insert(users).values({
-      name: 'J11 Admin',
+      firstName: 'J11',
+      lastName: 'Admin',
       email: adminEmail,
       password: hashedPassword,
-      isActive: true,
+      username: 'j11-admin',
+      role: 'admin',
     }).returning({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
     });
     

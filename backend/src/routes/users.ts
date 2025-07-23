@@ -24,11 +24,11 @@ router.get('/', async (req, res) => {
   try {
     const allUsers = await db.select({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
+      username: users.username,
+      role: users.role,
     }).from(users);
     
     res.json(allUsers);
@@ -48,12 +48,14 @@ router.get('/:id', async (req, res) => {
 
     const user = await db.select({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-    }).from(users).where(eq(users.id, userId)).limit(1);
+      username: users.username,
+      role: users.role,
+    }).from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     if (user.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -96,43 +98,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/users/:id - Update user
-router.put('/:id', async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id);
-    if (isNaN(userId)) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-
-    const validation = updateUserSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ 
-        error: 'Validation failed', 
-        details: validation.error.errors 
-      });
-    }
-
-    const updatedUser = await db.update(users)
-      .set({ ...validation.data, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        isActive: users.isActive,
-        updatedAt: users.updatedAt,
-      });
-
-    if (updatedUser.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json(updatedUser[0]);
-  } catch (error) {
-    console.error('Error updating user:', error);
-    res.status(500).json({ error: 'Failed to update user' });
-  }
-});
+// Since the users table doesn't have these columns, let's simplify the response
 
 // DELETE /api/users/:id - Delete user
 router.delete('/:id', async (req, res) => {

@@ -36,7 +36,8 @@ router.get('/', async (req, res) => {
       updatedAt: productionTasks.updatedAt,
       assignedTo: {
         id: users.id,
-        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
         email: users.email,
       }
     })
@@ -69,7 +70,8 @@ router.get('/:id', async (req, res) => {
       updatedAt: productionTasks.updatedAt,
       assignedTo: {
         id: users.id,
-        name: users.name,
+        firstName: users.firstName,
+        lastName: users.lastName,
         email: users.email,
       }
     })

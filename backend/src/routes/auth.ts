@@ -15,9 +15,11 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  name: z.string().min(1).max(255),
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100), 
   email: z.string().email().max(255),
   password: z.string().min(6).max(255),
+  username: z.string().min(1).max(100).optional(),
 });
 
 // POST /api/auth/login - User login
@@ -87,7 +89,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const { name, email, password } = validation.data;
+    const { firstName, lastName, email, password, username } = validation.data;
 
     // Hash password
     const saltRounds = 12;
@@ -95,30 +97,38 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const newUser = await db.insert(users).values({
-      name,
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
+      username,
     }).returning({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
+      username: users.username,
     });
 
     const createdUser = newUser[0];
 
     // Generate JWT token
+    const fullName = `${createdUser.firstName || ''} ${createdUser.lastName || ''}`.trim() || createdUser.username || createdUser.email;
     const token = generateToken({
       id: createdUser.id,
       email: createdUser.email,
-      name: createdUser.name,
+      name: fullName,
     });
 
     res.status(201).json({
       message: 'Registration successful',
       token,
-      user: createdUser
+      user: {
+        id: createdUser.id,
+        name: fullName,
+        email: createdUser.email,
+        username: createdUser.username,
+      }
     });
   } catch (error: any) {
     console.error('Error during registration:', error);
@@ -138,18 +148,27 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
 
     const user = await db.select({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
+      username: users.username,
+      role: users.role,
     }).from(users).where(eq(users.id, req.user.id)).limit(1);
 
     if (user.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user[0]);
+    const foundUser = user[0];
+    const fullName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || foundUser.email;
+    
+    res.json({
+      id: foundUser.id,
+      name: fullName,
+      email: foundUser.email,
+      username: foundUser.username,
+      role: foundUser.role,
+    });
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
