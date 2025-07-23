@@ -6,12 +6,14 @@ import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import ClientDetails from './pages/ClientDetails';
 import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails';
 import Reports from './pages/Reports';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('Dashboard');
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -36,6 +38,14 @@ const AppContent: React.FC = () => {
     setSelectedClientId(null);
   };
 
+  const handleProjectSelect = (projectId: number) => {
+    setSelectedProjectId(projectId);
+  };
+
+  const handleBackToProjects = () => {
+    setSelectedProjectId(null);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'Dashboard':
@@ -46,7 +56,10 @@ const AppContent: React.FC = () => {
         }
         return <Clients onClientSelect={handleClientSelect} />;
       case 'Projects':
-        return <Projects />;
+        if (selectedProjectId) {
+          return <ProjectDetails projectId={selectedProjectId} onBack={handleBackToProjects} />;
+        }
+        return <Projects onProjectSelect={handleProjectSelect} />;
       case 'Reports':
         return <Reports />;
       default:
@@ -54,9 +67,15 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handlePageChange = (page: string) => {
+    setCurrentPage(page);
+    setSelectedClientId(null);
+    setSelectedProjectId(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
+      <Sidebar currentPage={currentPage} onPageChange={handlePageChange} />
       <main className="ml-64 min-h-screen">
         {renderPage()}
       </main>
