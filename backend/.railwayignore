@@ -1,0 +1,9 @@
+# Railway ignore file
+.env
+.env.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+README.md
+.git/

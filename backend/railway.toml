@@ -1,0 +1,15 @@
+# Railway.toml
+[build]
+  builder = "nixpacks"
+
+[deploy]
+  healthcheckPath = "/health"
+  restartPolicyType = "always"
+
+[[services]]
+  name = "j11-production-manager-backend"
+  startCommand = "npm start"
+
+  [services.variables]
+    NODE_ENV = "production"
+    PORT = "3001"
