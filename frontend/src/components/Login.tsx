@@ -24,7 +24,7 @@ const Login: React.FC = () => {
   };
 
   const fillAdminCredentials = () => {
-    setEmail('j11-admin');
+    setEmail('admin@j11productions.com');
     setPassword('j11!@#$');
   };
 

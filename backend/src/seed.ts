@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 async function seedAdminUser() {
   try {
-    const adminEmail = 'j11-admin';
+    const adminEmail = 'admin@j11productions.com';
     const adminPassword = 'j11!@#$';
     
     // Check if admin user already exists
