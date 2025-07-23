@@ -19,9 +19,17 @@ interface Client {
 const Clients: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
+
+  // Filter and search states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [hideInactive, setHideInactive] = useState(false);
+  const [sortField, setSortField] = useState<'name' | 'contactPerson' | 'status' | 'projects'>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -112,6 +120,79 @@ const Clients: React.FC = () => {
     }
   };
 
+  // Filter and sort logic
+  const applyFiltersAndSort = () => {
+    let filtered = [...clients];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(client =>
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(client => client.status === statusFilter);
+    }
+
+    // Apply hide inactive toggle
+    if (hideInactive) {
+      filtered = filtered.filter(client => client.isActive);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: string | number = '';
+      let bVal: string | number = '';
+
+      switch (sortField) {
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'contactPerson':
+          aVal = (a.contactPerson || '').toLowerCase();
+          bVal = (b.contactPerson || '').toLowerCase();
+          break;
+        case 'status':
+          aVal = a.status.toLowerCase();
+          bVal = b.status.toLowerCase();
+          break;
+        case 'projects':
+          aVal = a.projects;
+          bVal = b.projects;
+          break;
+      }
+
+      if (sortDirection === 'asc') {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      }
+    });
+
+    setFilteredClients(filtered);
+  };
+
+  // Handle sort column click
+  const handleSort = (field: 'name' | 'contactPerson' | 'status' | 'projects') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Apply filters whenever dependencies change
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [clients, searchTerm, statusFilter, hideInactive, sortField, sortDirection]);
+
   useEffect(() => {
     fetchClients();
   }, [token]);
@@ -149,29 +230,177 @@ const Clients: React.FC = () => {
         </div>
       )}
 
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search Clients
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, company, contact..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sort By
+            </label>
+            <select
+              value={`${sortField}-${sortDirection}`}
+              onChange={(e) => {
+                const [field, direction] = e.target.value.split('-') as [typeof sortField, typeof sortDirection];
+                setSortField(field);
+                setSortDirection(direction);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="contactPerson-asc">Contact (A-Z)</option>
+              <option value="contactPerson-desc">Contact (Z-A)</option>
+              <option value="status-asc">Status (A-Z)</option>
+              <option value="status-desc">Status (Z-A)</option>
+              <option value="projects-desc">Projects (High-Low)</option>
+              <option value="projects-asc">Projects (Low-High)</option>
+            </select>
+          </div>
+
+          {/* Hide Inactive Toggle */}
+          <div className="flex items-end">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideInactive}
+                onChange={(e) => setHideInactive(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Hide Inactive</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            Showing {filteredClients.length} of {clients.length} clients
+            {searchTerm && (
+              <span className="ml-2 text-blue-600">
+                (filtered by "{searchTerm}")
+              </span>
+            )}
+          </div>
+          
+          {/* Reset Filters Button */}
+          {(searchTerm || statusFilter !== 'All' || hideInactive || sortField !== 'name' || sortDirection !== 'asc') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('All');
+                setHideInactive(false);
+                setSortField('name');
+                setSortDirection('asc');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Clients Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {clients.length === 0 ? (
+        {filteredClients.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-2">No clients found</div>
-            <p className="text-gray-400">Get started by adding your first client</p>
+            <div className="text-gray-500 text-lg mb-2">
+              {clients.length === 0 ? 'No clients found' : 'No clients match your filters'}
+            </div>
+            <p className="text-gray-400">
+              {clients.length === 0 
+                ? 'Get started by adding your first client' 
+                : 'Try adjusting your search or filter criteria'
+              }
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
+                <th 
+                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Client</span>
+                    {sortField === 'name' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                <th 
+                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('contactPerson')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Contact</span>
+                    {sortField === 'contactPerson' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                <th 
+                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Status</span>
+                    {sortField === 'status' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Projects
+                <th 
+                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('projects')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Projects</span>
+                    {sortField === 'projects' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Contact
@@ -182,7 +411,7 @@ const Clients: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <tr key={client.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
