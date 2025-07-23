@@ -13,10 +13,13 @@ router.get('/', authenticateToken, async (req, res) => {
       .select({
         id: clients.id,
         name: clients.name,
+        company: clients.company,
         email: clients.email,
         phone: clients.phone,
         address: clients.address,
-        status: clients.status,
+        contactPerson: clients.contactPerson,
+        notes: clients.notes,
+        isActive: clients.isActive,
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
       })
@@ -34,7 +37,8 @@ router.get('/', authenticateToken, async (req, res) => {
         return {
           ...client,
           projects: projectCount.length,
-          lastContact: client.updatedAt?.toISOString().split('T')[0] || client.createdAt?.toISOString().split('T')[0]
+          lastContact: client.updatedAt?.toISOString().split('T')[0] || client.createdAt?.toISOString().split('T')[0],
+          status: client.isActive ? 'Active' : 'Inactive'
         };
       })
     );
@@ -71,7 +75,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // POST /api/clients - Create a new client
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { name, email, phone, address } = req.body;
+    const { name, company, email, phone, address, contactPerson, notes } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Client name is required' });
@@ -81,10 +85,13 @@ router.post('/', authenticateToken, async (req, res) => {
       .insert(clients)
       .values({
         name,
+        company: company || null,
         email: email || null,
         phone: phone || null,
         address: address || null,
-        status: 'active'
+        contactPerson: contactPerson || null,
+        notes: notes || null,
+        isActive: true
       })
       .returning();
 
@@ -99,16 +106,19 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const clientId = parseInt(req.params.id);
-    const { name, email, phone, address, status } = req.body;
+    const { name, company, email, phone, address, contactPerson, notes, isActive } = req.body;
 
     const updatedClient = await db
       .update(clients)
       .set({
         name,
+        company,
         email,
         phone,
         address,
-        status,
+        contactPerson,
+        notes,
+        isActive,
         updatedAt: new Date()
       })
       .where(eq(clients.id, clientId))

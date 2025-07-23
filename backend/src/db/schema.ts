@@ -20,10 +20,13 @@ export const users = pgTable('users', {
 export const clients = pgTable('clients', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
+  company: varchar('company', { length: 255 }),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 20 }),
   address: text('address'),
-  status: varchar('status', { length: 50 }).default('active'),
+  contactPerson: varchar('contact_person', { length: 255 }),
+  notes: text('notes'),
+  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

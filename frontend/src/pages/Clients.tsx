@@ -4,9 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 interface Client {
   id: number;
   name: string;
+  company?: string;
   email?: string;
   phone?: string;
   address?: string;
+  contactPerson?: string;
+  notes?: string;
+  isActive: boolean;
   status: string;
   projects: number;
   lastContact: string;
@@ -48,7 +52,15 @@ const Clients: React.FC = () => {
   };
 
   // Add new client
-  const addClient = async (clientData: { name: string; email: string; phone: string; address?: string }) => {
+  const addClient = async (clientData: { 
+    name: string; 
+    company: string; 
+    email: string; 
+    phone: string; 
+    address?: string;
+    contactPerson?: string;
+    notes?: string;
+  }) => {
     try {
       const response = await fetch(`${API_URL}/api/clients`, {
         method: 'POST',
@@ -175,6 +187,12 @@ const Clients: React.FC = () => {
                   <td className="px-6 py-4">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                      {client.company && (
+                        <div className="text-sm text-gray-500">{client.company}</div>
+                      )}
+                      {client.contactPerson && (
+                        <div className="text-xs text-gray-400">Contact: {client.contactPerson}</div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -229,21 +247,32 @@ const Clients: React.FC = () => {
 // Add Client Modal Component
 interface AddClientModalProps {
   onClose: () => void;
-  onSubmit: (clientData: { name: string; email: string; phone: string; address?: string }) => void;
+  onSubmit: (clientData: { 
+    name: string; 
+    company: string; 
+    email: string; 
+    phone: string; 
+    address?: string;
+    contactPerson?: string;
+    notes?: string;
+  }) => void;
 }
 
 const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
+    company: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    contactPerson: '',
+    notes: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Company name is required');
+      alert('Client name is required');
       return;
     }
     onSubmit(formData);
@@ -263,7 +292,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Company Name *
+              Client Name *
             </label>
             <input
               type="text"
@@ -271,8 +300,34 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               value={formData.name}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter company name"
+              placeholder="Enter client name"
               required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Company
+            </label>
+            <input
+              type="text"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter company name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contact Person
+            </label>
+            <input
+              type="text"
+              name="contactPerson"
+              value={formData.contactPerson}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter contact person name"
             />
           </div>
           <div>
@@ -309,9 +364,22 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="address"
               value={formData.address}
               onChange={handleChange}
-              rows={3}
+              rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter address"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter notes"
             />
           </div>
           <div className="flex space-x-3 pt-4">
