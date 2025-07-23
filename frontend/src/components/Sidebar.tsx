@@ -21,11 +21,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   };
 
   return (
-    <div className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white h-screen flex flex-col">
+    <div className="fixed left-0 top-0 w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white h-screen flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-blue-700">
-        <h1 className="text-xl font-bold">J11 Production</h1>
-        <p className="text-blue-200 text-sm">Manager</p>
+        <h1 className="text-xl font-bold">Joinery Eleven</h1>
+        <p className="text-blue-200 text-sm">Production Manager</p>
       </div>
 
       {/* User Info */}

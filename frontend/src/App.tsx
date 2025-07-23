@@ -42,9 +42,9 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
-      <main className="flex-1 ml-64">
+      <main className="ml-64 min-h-screen">
         {renderPage()}
       </main>
     </div>

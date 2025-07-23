@@ -16,6 +16,18 @@ export const users = pgTable('users', {
   mobile: varchar('mobile', { length: 20 }),
 });
 
+// Clients table
+export const clients = pgTable('clients', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }),
+  phone: varchar('phone', { length: 20 }),
+  address: text('address'),
+  status: varchar('status', { length: 50 }).default('active'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Production tasks table
 export const productionTasks = pgTable('production_tasks', {
   id: serial('id').primaryKey(),
@@ -34,6 +46,7 @@ export const projects = pgTable('projects', {
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   status: varchar('status', { length: 50 }).default('active'),
+  clientId: serial('client_id').references(() => clients.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -49,6 +62,8 @@ export const projectTasks = pgTable('project_tasks', {
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Client = typeof clients.$inferSelect;
+export type NewClient = typeof clients.$inferInsert;
 export type ProductionTask = typeof productionTasks.$inferSelect;
 export type NewProductionTask = typeof productionTasks.$inferInsert;
 export type Project = typeof projects.$inferSelect;
