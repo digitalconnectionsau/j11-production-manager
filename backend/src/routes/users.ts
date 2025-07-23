@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import db from '../db/index';
-import { users, type User, type NewUser } from '../db/schema';
+import db from '../db/index.js';
+import { users, type User, type NewUser } from '../db/schema.js';
 
 const router = Router();
 

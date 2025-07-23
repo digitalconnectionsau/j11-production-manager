@@ -2,9 +2,9 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import db from '../db/index';
-import { users } from '../db/schema';
-import { generateToken, authenticateToken, type AuthRequest } from '../middleware/auth';
+import db from '../db/index.js';
+import { users } from '../db/schema.js';
+import { generateToken, authenticateToken, type AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 

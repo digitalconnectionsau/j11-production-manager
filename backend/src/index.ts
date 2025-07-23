@@ -4,10 +4,10 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 
 // Import routes
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import taskRoutes from './routes/tasks';
-import projectRoutes from './routes/projects';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import taskRoutes from './routes/tasks.js';
+import projectRoutes from './routes/projects.js';
 
 // Load environment variables
 dotenv.config();
