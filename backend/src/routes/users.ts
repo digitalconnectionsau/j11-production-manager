@@ -82,10 +82,10 @@ router.post('/', async (req, res) => {
     const newUser: NewUser = validation.data;
     const createdUser = await db.insert(users).values(newUser).returning({
       id: users.id,
-      name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       email: users.email,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
+      username: users.username,
     });
 
     res.status(201).json(createdUser[0]);
