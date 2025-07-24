@@ -9,6 +9,8 @@ import userRoutes from './routes/users.js';
 import taskRoutes from './routes/tasks.js';
 import projectRoutes from './routes/projects.js';
 import clientRoutes from './routes/clients.js';
+import jobRoutes from './routes/jobs.js';
+import pinnedRoutes from './routes/pinned.js';
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +22,7 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
   'https://j11-frontend-production.up.railway.app'
 ];
@@ -48,6 +51,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/pinned', pinnedRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -62,6 +62,15 @@ export const projectTasks = pgTable('project_tasks', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Pinned projects table
+export const pinnedProjects = pgTable('pinned_projects', {
+  id: serial('id').primaryKey(),
+  projectId: serial('project_id').references(() => projects.id),
+  userId: serial('user_id').references(() => users.id),
+  order: serial('order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -71,3 +80,5 @@ export type ProductionTask = typeof productionTasks.$inferSelect;
 export type NewProductionTask = typeof productionTasks.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+export type PinnedProject = typeof pinnedProjects.$inferSelect;
+export type NewPinnedProject = typeof pinnedProjects.$inferInsert;

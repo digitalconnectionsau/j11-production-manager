@@ -7,13 +7,16 @@ import Clients from './pages/Clients';
 import ClientDetails from './pages/ClientDetails';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
+import JobDetails from './pages/JobDetails';
 import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('Dashboard');
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -44,6 +47,15 @@ const AppContent: React.FC = () => {
 
   const handleBackToProjects = () => {
     setSelectedProjectId(null);
+    setSelectedJobId(null);
+  };
+
+  const handleJobSelect = (jobId: number) => {
+    setSelectedJobId(jobId);
+  };
+
+  const handleBackToProject = () => {
+    setSelectedJobId(null);
   };
 
   const renderPage = () => {
@@ -56,12 +68,17 @@ const AppContent: React.FC = () => {
         }
         return <Clients onClientSelect={handleClientSelect} />;
       case 'Projects':
+        if (selectedJobId && selectedProjectId) {
+          return <JobDetails jobId={selectedJobId} projectId={selectedProjectId} onBack={handleBackToProject} />;
+        }
         if (selectedProjectId) {
-          return <ProjectDetails projectId={selectedProjectId} onBack={handleBackToProjects} />;
+          return <ProjectDetails projectId={selectedProjectId} onBack={handleBackToProjects} onJobSelect={handleJobSelect} />;
         }
         return <Projects onProjectSelect={handleProjectSelect} />;
       case 'Reports':
         return <Reports />;
+      case 'Settings':
+        return <Settings />;
       default:
         return <Dashboard />;
     }
@@ -71,11 +88,23 @@ const AppContent: React.FC = () => {
     setCurrentPage(page);
     setSelectedClientId(null);
     setSelectedProjectId(null);
+    setSelectedJobId(null);
+  };
+
+  const handleSidebarProjectSelect = (projectId: number) => {
+    setCurrentPage('Projects');
+    setSelectedProjectId(projectId);
+    setSelectedClientId(null);
+    setSelectedJobId(null);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} onPageChange={handlePageChange} />
+      <Sidebar 
+        currentPage={currentPage} 
+        onPageChange={handlePageChange} 
+        onProjectSelect={handleSidebarProjectSelect}
+      />
       <main className="ml-64 min-h-screen">
         {renderPage()}
       </main>

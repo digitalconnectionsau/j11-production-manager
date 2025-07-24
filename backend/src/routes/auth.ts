@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '../db/index.js';
 import { users } from '../db/schema.js';
@@ -10,7 +10,7 @@ const router = Router();
 
 // Validation schemas
 const loginSchema = z.object({
-  email: z.string().email().max(255),
+  email: z.string().min(1).max(255), // Changed from email() to allow username
   password: z.string().min(1),
 });
 
@@ -35,10 +35,15 @@ router.post('/login', async (req, res) => {
 
     const { email, password } = validation.data;
 
-    // Find user by email
+    // Find user by email or username
     const user = await db.select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(
+        or(
+          eq(users.email, email),
+          eq(users.username, email)
+        )
+      )
       .limit(1);
 
     if (user.length === 0) {

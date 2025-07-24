@@ -17,6 +17,15 @@ interface Project {
   jobCount: number;
   completedJobCount: number;
   progress: number;
+  isPinned?: boolean;
+}
+
+interface PinnedProject {
+  id: number;
+  projectId: number;
+  order: number;
+  createdAt: string;
+  project: Project;
 }
 
 interface ProjectsProps {
@@ -26,6 +35,7 @@ interface ProjectsProps {
 const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pinnedProjects, setPinnedProjects] = useState<PinnedProject[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +71,99 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       setError(err instanceof Error ? err.message : 'Failed to fetch projects');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch pinned projects from API
+  const fetchPinnedProjects = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/pinned`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPinnedProjects(data);
+        
+        // Update projects to mark which ones are pinned
+        const pinnedProjectIds = data.map((p: PinnedProject) => p.projectId);
+        setProjects(prev => prev.map(project => ({
+          ...project,
+          isPinned: pinnedProjectIds.includes(project.id)
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch pinned projects:', err);
+    }
+  };
+
+  // Pin/Unpin a project
+  const togglePinProject = async (projectId: number, isPinned: boolean) => {
+    try {
+      if (isPinned) {
+        // Unpin the project
+        const response = await fetch(`${API_URL}/api/pinned/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          setPinnedProjects(prev => prev.filter(p => p.projectId !== projectId));
+          setProjects(prev => prev.map(p => 
+            p.id === projectId ? { ...p, isPinned: false } : p
+          ));
+        }
+      } else {
+        // Pin the project
+        const response = await fetch(`${API_URL}/api/pinned`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ projectId }),
+        });
+
+        if (response.ok) {
+          await fetchPinnedProjects(); // Refresh pinned projects
+          setProjects(prev => prev.map(p => 
+            p.id === projectId ? { ...p, isPinned: true } : p
+          ));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle pin status:', err);
+    }
+  };
+
+  // Update pinned projects order
+  const updatePinnedOrder = async (reorderedPinned: PinnedProject[]) => {
+    try {
+      const orderData = reorderedPinned.map((item, index) => ({
+        id: item.id,
+        order: index + 1,
+      }));
+
+      const response = await fetch(`${API_URL}/api/pinned/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pinnedProjectsOrder: orderData }),
+      });
+
+      if (response.ok) {
+        setPinnedProjects(reorderedPinned);
+      }
+    } catch (err) {
+      console.error('Failed to update pinned order:', err);
     }
   };
 
@@ -164,6 +267,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
   useEffect(() => {
     fetchProjects();
+    fetchPinnedProjects();
   }, []);
 
   useEffect(() => {
@@ -304,6 +408,68 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         </div>
       </div>
 
+      {/* Pinned Projects */}
+      {pinnedProjects.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              📌 Pinned Projects
+            </h3>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pinnedProjects.map((pinnedProject, index) => (
+                <div
+                  key={pinnedProject.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => onProjectSelect(pinnedProject.projectId)}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', index.toString());
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    const dropIndex = index;
+                    
+                    if (dragIndex !== dropIndex) {
+                      const reordered = [...pinnedProjects];
+                      const [removed] = reordered.splice(dragIndex, 1);
+                      reordered.splice(dropIndex, 0, removed);
+                      updatePinnedOrder(reordered);
+                    }
+                  }}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 truncate">{pinnedProject.project.name}</h4>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePinProject(pinnedProject.projectId, true);
+                      }}
+                      className="text-yellow-500 hover:text-gray-400 text-sm"
+                      title="Unpin project"
+                    >
+                      📌
+                    </button>
+                  </div>
+                  {pinnedProject.project.client && (
+                    <p className="text-sm text-gray-600 mb-2">{pinnedProject.project.client.name}</p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(pinnedProject.project.status)}`}>
+                      {pinnedProject.project.status}
+                    </span>
+                    <span className="text-xs text-gray-500">{pinnedProject.project.progress}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Projects Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -353,6 +519,9 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 {sortField === 'jobs' && (
                   <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                 )}
+              </th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pin
               </th>
               <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -408,6 +577,18 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                   <div className="text-sm text-gray-900">
                     {project.completedJobCount}/{project.jobCount}
                   </div>
+                </td>
+                <td className="px-6 py-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinProject(project.id, project.isPinned || false);
+                    }}
+                    className={`text-lg ${project.isPinned ? 'text-yellow-500' : 'text-gray-300'} hover:text-yellow-600 transition-colors`}
+                    title={project.isPinned ? 'Unpin project' : 'Pin project'}
+                  >
+                    📌
+                  </button>
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   <button 

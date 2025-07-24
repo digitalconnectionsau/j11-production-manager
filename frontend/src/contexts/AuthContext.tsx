@@ -6,6 +6,9 @@ interface User {
   email: string;
   role?: string;
   username?: string;
+  firstName?: string;
+  lastName?: string;
+  mobile?: string;
 }
 
 interface AuthContextType {
@@ -36,6 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  
+  console.log('🔗 Frontend using API_URL:', API_URL);
 
   useEffect(() => {
     // Check for stored token on app load

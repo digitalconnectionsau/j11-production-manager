@@ -1,10 +1,16 @@
+import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import db from './db/index.js';
 import { users } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 
+// Load environment variables
+dotenv.config();
+
 async function seedAdminUser() {
   try {
+    console.log('🔗 Using DATABASE_URL:', process.env.DATABASE_URL);
+    
     const adminEmail = 'admin@j11productions.com';
     const adminPassword = 'j11!@#$';
     

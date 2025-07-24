@@ -27,23 +27,26 @@ interface Project {
     email?: string;
     phone?: string;
   };
-  jobs: Job[];
+  jobs?: Job[];
   jobCount: number;
   completedJobCount: number;
   progress: number;
+  isPinned?: boolean;
 }
 
 interface ProjectDetailsProps {
   projectId: number;
   onBack: () => void;
+  onJobSelect?: (jobId: number) => void;
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJobSelect }) => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Project | null>(null);
+  const [isPinning, setIsPinning] = useState(false);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -52,20 +55,36 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
   const fetchProject = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/projects/${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const [projectResponse, pinnedResponse] = await Promise.all([
+        fetch(`${API_URL}/api/projects/${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(`${API_URL}/api/pinned`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
 
-      if (!response.ok) {
+      if (!projectResponse.ok) {
         throw new Error('Failed to fetch project details');
       }
 
-      const data = await response.json();
-      setProject(data);
-      setEditForm(data);
+      const projectData = await projectResponse.json();
+      
+      // Check if this project is pinned
+      let isPinned = false;
+      if (pinnedResponse.ok) {
+        const pinnedData = await pinnedResponse.json();
+        isPinned = pinnedData.some((p: any) => p.projectId === projectId);
+      }
+
+      setProject({ ...projectData, isPinned });
+      setEditForm({ ...projectData, isPinned });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch project');
     } finally {
@@ -114,6 +133,48 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
       ...editForm,
       [name]: value,
     });
+  };
+
+  // Toggle pin status for this project
+  const togglePinProject = async () => {
+    if (!project) return;
+    
+    try {
+      setIsPinning(true);
+      
+      if (project.isPinned) {
+        // Unpin the project
+        const response = await fetch(`${API_URL}/api/pinned/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          setProject({ ...project, isPinned: false });
+        }
+      } else {
+        // Pin the project
+        const response = await fetch(`${API_URL}/api/pinned`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ projectId }),
+        });
+
+        if (response.ok) {
+          setProject({ ...project, isPinned: true });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle pin status:', err);
+    } finally {
+      setIsPinning(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -235,6 +296,27 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
             )}
           </div>
           <div className="flex space-x-3">
+            <button
+              onClick={togglePinProject}
+              disabled={isPinning}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+                project.isPinned
+                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              } ${isPinning ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span className="text-sm">
+                {project.isPinned ? '📌' : '📍'}
+              </span>
+              <span>
+                {isPinning 
+                  ? 'Updating...' 
+                  : project.isPinned 
+                    ? 'Unpin Project' 
+                    : 'Pin Project'
+                }
+              </span>
+            </button>
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
@@ -388,7 +470,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold">Jobs ({project.jobCount})</h3>
         </div>
-        {project.jobs.length > 0 ? (
+        {project.jobs && project.jobs.length > 0 ? (
           <div className="overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -408,8 +490,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {project.jobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-gray-50">
+                {(project.jobs || []).map((job) => (
+                  <tr 
+                    key={job.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => onJobSelect?.(job.id)}
+                  >
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{job.title}</div>
