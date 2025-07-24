@@ -43,28 +43,6 @@ const Settings: React.FC = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Fetch user settings
-  const fetchUserSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUserSettings(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch user settings:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Update user profile
   const updateUserProfile = async (e: React.FormEvent) => {
     e.preventDefault();
