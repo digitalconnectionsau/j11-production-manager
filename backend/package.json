@@ -9,7 +9,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "postbuild": "cp -r src/db/migrations dist/db/ 2>/dev/null || true",
+    "deploy": "npm run build && npx drizzle-kit push",
     "db:migrate": "npx drizzle-kit migrate",
+    "db:push": "npx drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
     "db:studio": "npx drizzle-kit studio",
     "seed": "tsx src/seed.ts"

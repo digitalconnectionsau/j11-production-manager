@@ -51,6 +51,8 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
   // Fetch projects from API
   const fetchProjects = async () => {
+    if (!token) return;
+    
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/api/projects`, {
@@ -76,6 +78,8 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
   // Fetch pinned projects from API
   const fetchPinnedProjects = async () => {
+    if (!token) return;
+    
     try {
       const response = await fetch(`${API_URL}/api/pinned`, {
         headers: {
@@ -266,9 +270,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   };
 
   useEffect(() => {
-    fetchProjects();
-    fetchPinnedProjects();
-  }, []);
+    if (token) {
+      fetchProjects();
+      fetchPinnedProjects();
+    }
+  }, [token]);
 
   useEffect(() => {
     applyFiltersAndSort();

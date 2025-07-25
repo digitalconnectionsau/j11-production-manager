@@ -39,6 +39,8 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
 
   // Fetch clients from API
   const fetchClients = async () => {
+    if (!token) return;
+    
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/api/clients`, {
@@ -198,7 +200,9 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
   }, [clients, searchTerm, statusFilter, hideInactive, sortField, sortDirection]);
 
   useEffect(() => {
-    fetchClients();
+    if (token) {
+      fetchClients();
+    }
   }, [token]);
 
   if (loading) {

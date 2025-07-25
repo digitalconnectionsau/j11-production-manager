@@ -59,12 +59,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   useEffect(() => {
-    fetchPinnedProjects();
+    if (token) {
+      fetchPinnedProjects();
+    }
   }, [token]);
 
   useEffect(() => {
     // Refresh pinned projects when navigating to Projects page
-    if (currentPage === 'Projects') {
+    if (currentPage === 'Projects' && token) {
       fetchPinnedProjects();
     }
   }, [currentPage]);

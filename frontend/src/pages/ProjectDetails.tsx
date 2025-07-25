@@ -53,6 +53,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
   // Fetch project details
   const fetchProject = async () => {
+    if (!token) return;
+    
     try {
       setLoading(true);
       const [projectResponse, pinnedResponse] = await Promise.all([
@@ -226,8 +228,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   };
 
   useEffect(() => {
-    fetchProject();
-  }, [projectId]);
+    if (token && projectId) {
+      fetchProject();
+    }
+  }, [projectId, token]);
 
   if (loading) {
     return (
