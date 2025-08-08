@@ -291,7 +291,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-light-grey text-charcoal';
     }
   };
 
@@ -306,11 +306,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-light-grey rounded w-1/4"></div>
+          <div className="h-10 bg-light-grey rounded"></div>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-light-grey rounded"></div>
             ))}
           </div>
         </div>
@@ -333,37 +333,37 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       {/* Header */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
+          <h1 className="text-3xl font-bold text-black">Projects</h1>
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-primary hover:bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
           >
             Add Project
           </button>
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-light-grey p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <label className="block text-sm font-medium text-charcoal mb-1">Search</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search projects, clients..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-charcoal mb-1">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="All">All Statuses</option>
                 <option value="active">Active</option>
@@ -375,7 +375,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
             {/* Sort */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+              <label className="block text-sm font-medium text-charcoal mb-1">Sort By</label>
               <select
                 value={`${sortField}-${sortDirection}`}
                 onChange={(e) => {
@@ -383,7 +383,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                   setSortField(field as typeof sortField);
                   setSortDirection(direction as 'asc' | 'desc');
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="name-asc">Name A-Z</option>
                 <option value="name-desc">Name Z-A</option>
@@ -401,14 +401,14 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
             <div className="flex items-end">
               <button
                 onClick={resetFilters}
-                className="w-full px-3 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="w-full px-3 py-2 text-charcoal bg-light-grey rounded-md hover:bg-opacity-80 transition-colors"
               >
                 Reset Filters
               </button>
             </div>
           </div>
 
-          <div className="mt-3 text-sm text-gray-600">
+          <div className="mt-3 text-sm text-charcoal">
             Showing {filteredProjects.length} of {projects.length} projects
           </div>
         </div>
@@ -416,9 +416,9 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
       {/* Pinned Projects */}
       {pinnedProjects.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="bg-white rounded-lg shadow-sm border border-light-grey overflow-hidden">
+          <div className="px-6 py-4 border-b border-light-grey">
+            <h3 className="text-lg font-medium text-black flex items-center">
               📌 Pinned Projects
             </h3>
           </div>
@@ -427,7 +427,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               {pinnedProjects.map((pinnedProject, index) => (
                 <div
                   key={pinnedProject.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="border border-light-grey rounded-lg p-4 hover:bg-light-grey cursor-pointer transition-colors"
                   onClick={() => onProjectSelect(pinnedProject.projectId)}
                   draggable
                   onDragStart={(e) => {
@@ -448,26 +448,26 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                   }}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-gray-900 truncate">{pinnedProject.project.name}</h4>
+                    <h4 className="font-medium text-black truncate">{pinnedProject.project.name}</h4>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         togglePinProject(pinnedProject.projectId, true);
                       }}
-                      className="text-yellow-500 hover:text-gray-400 text-sm"
+                      className="text-yellow-500 hover:text-charcoal text-sm"
                       title="Unpin project"
                     >
                       📌
                     </button>
                   </div>
                   {pinnedProject.project.client && (
-                    <p className="text-sm text-gray-600 mb-2">{pinnedProject.project.client.name}</p>
+                    <p className="text-sm text-charcoal mb-2">{pinnedProject.project.client.name}</p>
                   )}
                   <div className="flex items-center justify-between">
                     <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(pinnedProject.project.status)}`}>
                       {pinnedProject.project.status}
                     </span>
-                    <span className="text-xs text-gray-500">{pinnedProject.project.progress}%</span>
+                    <span className="text-xs text-charcoal">{pinnedProject.project.progress}%</span>
                   </div>
                 </div>
               ))}
@@ -477,13 +477,13 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       )}
 
       {/* Projects Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white rounded-lg shadow-sm border border-light-grey overflow-hidden">
+        <table className="min-w-full divide-y divide-light-grey">
+          <thead className="bg-light-grey">
             <tr>
               <th
                 onClick={() => handleSort('name')}
-                className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
               >
                 Project Name
                 {sortField === 'name' && (
@@ -492,7 +492,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               </th>
               <th
                 onClick={() => handleSort('client')}
-                className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
               >
                 Client
                 {sortField === 'client' && (
@@ -501,7 +501,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               </th>
               <th
                 onClick={() => handleSort('status')}
-                className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
               >
                 Status
                 {sortField === 'status' && (
@@ -510,7 +510,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               </th>
               <th
                 onClick={() => handleSort('progress')}
-                className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
               >
                 Progress
                 {sortField === 'progress' && (
@@ -519,33 +519,33 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               </th>
               <th
                 onClick={() => handleSort('jobs')}
-                className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
               >
                 Jobs
                 {sortField === 'jobs' && (
                   <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                 )}
               </th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
                 Pin
               </th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-light-grey">
             {filteredProjects.map((project) => (
               <tr 
                 key={project.id} 
-                className="hover:bg-gray-50 cursor-pointer"
+                className="hover:bg-light-grey cursor-pointer"
                 onClick={() => onProjectSelect(project.id)}
               >
                 <td className="px-6 py-4">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                    <div className="text-sm font-medium text-black">{project.name}</div>
                     {project.description && (
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                      <div className="text-sm text-charcoal truncate max-w-xs">
                         {project.description}
                       </div>
                     )}
@@ -554,13 +554,13 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 <td className="px-6 py-4">
                   {project.client ? (
                     <div>
-                      <div className="text-sm text-gray-900">{project.client.name}</div>
+                      <div className="text-sm text-black">{project.client.name}</div>
                       {project.client.company && (
-                        <div className="text-sm text-gray-500">{project.client.company}</div>
+                        <div className="text-sm text-charcoal">{project.client.company}</div>
                       )}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-400">No client assigned</div>
+                    <div className="text-sm text-charcoal">No client assigned</div>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -570,17 +570,17 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
+                    <div className="w-full bg-light-grey rounded-full h-2 mr-2">
                       <div
                         className={`h-2 rounded-full ${getPriorityColor(project.progress)}`}
                         style={{ width: `${project.progress}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm text-gray-600 min-w-0">{project.progress}%</span>
+                    <span className="text-sm text-charcoal min-w-0">{project.progress}%</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-black">
                     {project.completedJobCount}/{project.jobCount}
                   </div>
                 </td>
@@ -590,7 +590,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                       e.stopPropagation();
                       togglePinProject(project.id, project.isPinned || false);
                     }}
-                    className={`text-lg ${project.isPinned ? 'text-yellow-500' : 'text-gray-300'} hover:text-yellow-600 transition-colors`}
+                    className={`text-lg ${project.isPinned ? 'text-yellow-500' : 'text-charcoal'} hover:text-yellow-600 transition-colors`}
                     title={project.isPinned ? 'Unpin project' : 'Pin project'}
                   >
                     📌
@@ -598,7 +598,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   <button 
-                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    className="text-primary hover:opacity-80 mr-3"
                     onClick={(e) => {
                       e.stopPropagation();
                       // Edit functionality - to be implemented
@@ -623,7 +623,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
 
         {filteredProjects.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-500">No projects found</div>
+            <div className="text-charcoal">No projects found</div>
           </div>
         )}
       </div>
@@ -632,11 +632,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Project</h2>
-            <p className="text-gray-600 mb-4">Project creation form coming soon...</p>
+            <h2 className="text-xl font-bold mb-4 text-black">Add New Project</h2>
+            <p className="text-charcoal mb-4">Project creation form coming soon...</p>
             <button
               onClick={() => setShowAddModal(false)}
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+              className="w-full px-4 py-2 bg-charcoal text-white rounded-md hover:opacity-80 transition-colors"
             >
               Close
             </button>

@@ -209,8 +209,8 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
     return (
       <div className="p-6">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Loading clients...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-charcoal">Loading clients...</span>
         </div>
       </div>
     );
@@ -220,12 +220,12 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-600 mt-2">Manage your client relationships</p>
+          <h1 className="text-3xl font-bold text-black">Clients</h1>
+          <p className="text-charcoal mt-2">Manage your client relationships</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
           + Add Client
         </button>
@@ -239,11 +239,11 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
       )}
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="bg-white rounded-lg shadow-md border border-light-grey p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Search Clients
             </label>
             <input
@@ -251,19 +251,19 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, company, contact..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Filter by Status
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
@@ -273,7 +273,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
 
           {/* Sort By */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Sort By
             </label>
             <select
@@ -283,7 +283,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                 setSortField(field);
                 setSortDirection(direction);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
@@ -303,19 +303,19 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                 type="checkbox"
                 checked={hideInactive}
                 onChange={(e) => setHideInactive(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-primary border-light-grey rounded focus:ring-primary"
               />
-              <span className="text-sm font-medium text-gray-700">Hide Inactive</span>
+              <span className="text-sm font-medium text-charcoal">Hide Inactive</span>
             </label>
           </div>
         </div>
 
         {/* Results Count */}
         <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-charcoal">
             Showing {filteredClients.length} of {clients.length} clients
             {searchTerm && (
-              <span className="ml-2 text-blue-600">
+              <span className="ml-2 text-primary">
                 (filtered by "{searchTerm}")
               </span>
             )}
@@ -331,7 +331,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                 setSortField('name');
                 setSortDirection('asc');
               }}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="text-sm text-primary hover:opacity-80 font-medium"
             >
               Reset Filters
             </button>
@@ -340,13 +340,13 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
       </div>
 
       {/* Clients Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md border border-light-grey overflow-hidden">
         {filteredClients.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-2">
+            <div className="text-charcoal text-lg mb-2">
               {clients.length === 0 ? 'No clients found' : 'No clients match your filters'}
             </div>
-            <p className="text-gray-400">
+            <p className="text-charcoal">
               {clients.length === 0 
                 ? 'Get started by adding your first client' 
                 : 'Try adjusting your search or filter criteria'
@@ -356,108 +356,108 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-light-grey">
               <tr>
                 <th 
-                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Client</span>
                     {sortField === 'name' && (
-                      <span className="text-blue-600">
+                      <span className="text-primary">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
                   onClick={() => handleSort('contactPerson')}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Contact</span>
                     {sortField === 'contactPerson' && (
-                      <span className="text-blue-600">
+                      <span className="text-primary">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Status</span>
                     {sortField === 'status' && (
-                      <span className="text-blue-600">
+                      <span className="text-primary">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider cursor-pointer hover:bg-opacity-80"
                   onClick={() => handleSort('projects')}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Projects</span>
                     {sortField === 'projects' && (
-                      <span className="text-blue-600">
+                      <span className="text-primary">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
                   Last Contact
                 </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-light-grey">
               {filteredClients.map((client) => (
                 <tr 
                   key={client.id} 
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-light-grey cursor-pointer"
                   onClick={() => onClientSelect(client.id)}
                 >
                   <td className="px-6 py-4">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                      <div className="text-sm font-medium text-black">{client.name}</div>
                       {client.company && (
-                        <div className="text-sm text-gray-500">{client.company}</div>
+                        <div className="text-sm text-charcoal">{client.company}</div>
                       )}
                       {client.contactPerson && (
-                        <div className="text-xs text-gray-400">Contact: {client.contactPerson}</div>
+                        <div className="text-xs text-charcoal">Contact: {client.contactPerson}</div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{client.email}</div>
-                    <div className="text-sm text-gray-500">{client.phone}</div>
+                    <div className="text-sm text-black">{client.email}</div>
+                    <div className="text-sm text-charcoal">{client.phone}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       client.status === 'Active' 
                         ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
+                        : 'bg-light-grey text-charcoal'
                     }`}>
                       {client.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-black">
                     {client.projects}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-black">
                     {client.lastContact}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     <button 
-                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      className="text-primary hover:opacity-80 mr-3"
                       onClick={(e) => {
                         e.stopPropagation();
                         // Edit functionality - to be implemented
@@ -537,11 +537,11 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Add New Client</h2>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md border border-light-grey">
+        <h2 className="text-xl font-bold text-black mb-4">Add New Client</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Client Name *
             </label>
             <input
@@ -549,13 +549,13 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter client name"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Company
             </label>
             <input
@@ -563,12 +563,12 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="company"
               value={formData.company}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter company name"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Contact Person
             </label>
             <input
@@ -576,12 +576,12 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="contactPerson"
               value={formData.contactPerson}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter contact person name"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Email
             </label>
             <input
@@ -589,12 +589,12 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter email address"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Phone
             </label>
             <input
@@ -602,12 +602,12 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter phone number"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Address
             </label>
             <textarea
@@ -615,12 +615,12 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               value={formData.address}
               onChange={handleChange}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter address"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-charcoal mb-1">
               Notes
             </label>
             <textarea
@@ -628,7 +628,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
               value={formData.notes}
               onChange={handleChange}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter notes"
             />
           </div>
@@ -636,13 +636,13 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) =>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              className="flex-1 px-4 py-2 text-charcoal bg-light-grey rounded-md hover:bg-opacity-80 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 text-white bg-primary rounded-md hover:opacity-90 transition-colors"
             >
               Add Client
             </button>

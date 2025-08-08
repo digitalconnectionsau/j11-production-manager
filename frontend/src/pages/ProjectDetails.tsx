@@ -190,7 +190,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-light-grey text-charcoal';
     }
   };
 
@@ -203,7 +203,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-light-grey text-charcoal';
     }
   };
 
@@ -216,7 +216,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       case 'low':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-light-grey text-charcoal';
     }
   };
 
@@ -237,12 +237,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
+          <div className="h-4 bg-light-grey rounded w-1/4 mb-4"></div>
+          <div className="h-8 bg-light-grey rounded w-1/2 mb-6"></div>
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+            <div className="h-4 bg-light-grey rounded"></div>
+            <div className="h-4 bg-light-grey rounded w-5/6"></div>
+            <div className="h-4 bg-light-grey rounded w-4/6"></div>
           </div>
         </div>
       </div>
@@ -254,7 +254,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       <div className="p-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
           ← Back to Projects
         </button>
@@ -270,11 +270,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       <div className="p-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
           ← Back to Projects
         </button>
-        <div className="text-gray-500">Project not found</div>
+        <div className="text-charcoal">Project not found</div>
       </div>
     );
   }
@@ -285,15 +285,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       <div className="mb-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
           ← Back to Projects
         </button>
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+            <h1 className="text-3xl font-bold text-black">{project.name}</h1>
             {project.client && (
-              <p className="text-lg text-gray-600 mt-1">
+              <p className="text-lg text-charcoal mt-1">
                 {project.client.name}
                 {project.client.company && ` - ${project.client.company}`}
               </p>
@@ -306,7 +306,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
                 project.isPinned
                   ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  : 'bg-light-grey hover:bg-opacity-80 text-charcoal'
               } ${isPinning ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span className="text-sm">
@@ -324,7 +324,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Edit Project
               </button>
@@ -335,7 +335,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                     setIsEditing(false);
                     setEditForm(project);
                   }}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-charcoal hover:opacity-80 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                 >
                   Cancel
                 </button>

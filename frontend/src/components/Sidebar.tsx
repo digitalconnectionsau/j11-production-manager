@@ -85,22 +85,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   return (
-    <div className="fixed left-0 top-0 w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white h-screen flex flex-col">
+    <div className="fixed left-0 top-0 w-64 bg-charcoal text-white h-screen flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-blue-700">
-        <h1 className="text-xl font-bold">Joinery Eleven</h1>
-        <p className="text-blue-200 text-sm">Production Manager</p>
+      <div className="p-6 border-b border-light-grey border-opacity-20">
+        <h1 className="text-xl font-bold text-white">Joinery Eleven</h1>
+        <p className="text-gray-300 text-sm">Production Manager</p>
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-blue-700">
+      <div className="p-4 border-b border-light-grey border-opacity-20">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-sm font-semibold">{user?.name?.charAt(0) || 'U'}</span>
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+            <span className="text-sm font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
           </div>
           <div>
-            <p className="text-sm font-medium">{user?.name || 'User'}</p>
-            <p className="text-xs text-blue-200">{user?.role || 'User'}</p>
+            <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+            <p className="text-xs text-gray-300">{user?.role || 'User'}</p>
           </div>
         </div>
       </div>
@@ -114,8 +114,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
                 onClick={() => onPageChange(item.id)}
                 className={`w-full flex items-center space-x-3 px-6 py-3 transition-all duration-200 ${
                   currentPage === item.id
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'text-blue-100 hover:bg-blue-800 hover:text-white'
+                    ? 'bg-primary text-white shadow-lg'
+                    : 'text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white'
                 }`}
               >
                 <span className="text-lg">{item.icon}</span>
@@ -128,14 +128,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
         {/* Pinned Projects Section */}
         {pinnedProjects.length > 0 && (
           <div className="mt-6 px-4">
-            <div className="border-t border-blue-700 pt-4">
-              <h3 className="text-sm font-semibold text-blue-200 mb-3 px-2">Pinned Projects</h3>
+            <div className="border-t border-light-grey border-opacity-20 pt-4">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3 px-2">Pinned Projects</h3>
               <ul className="space-y-1">
                 {pinnedProjects.map((pinnedProject) => (
                   <li key={pinnedProject.id}>
                     <button
                       onClick={() => handlePinnedProjectClick(pinnedProject.projectId)}
-                      className="w-full text-left px-2 py-2 text-sm text-blue-100 hover:bg-blue-800 hover:text-white rounded transition-all duration-200 flex items-center justify-between group"
+                      className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white rounded transition-all duration-200 flex items-center justify-between group"
                     >
                       <div className="flex items-center space-x-2 min-w-0 flex-1">
                         <span className="text-xs">📌</span>
@@ -162,9 +162,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
 
         {loadingPinned && (
           <div className="mt-6 px-6">
-            <div className="border-t border-blue-700 pt-4">
-              <div className="text-sm text-blue-200 flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin"></div>
+            <div className="border-t border-light-grey border-opacity-20 pt-4">
+              <div className="text-sm text-gray-300 flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
                 <span>Loading pinned projects...</span>
               </div>
             </div>
@@ -173,10 +173,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
       </nav>
 
       {/* Logout Button */}
-      <div className="border-t border-blue-700">
+      <div className="border-t border-light-grey border-opacity-20">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-6 py-3 text-blue-100 hover:bg-red-600 hover:text-white transition-all duration-200"
+          className="w-full flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200"
         >
           <span className="text-lg">🚪</span>
           <span className="font-medium">Logout</span>

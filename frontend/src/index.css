@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+/* J11 Production Manager Custom Color Palette */
+:root {
+  --color-primary: #FF661F;    /* Orange - accent, buttons, hovers */
+  --color-white: #FFFFFF;      /* White - backgrounds, space */
+  --color-light-grey: #EBEBEB; /* Light grey - separators, subtle borders */
+  --color-charcoal: #37393B;   /* Charcoal - sidebar, main borders */
+  --color-black: #000000;      /* Black - text, strong contrast */
+}
+
+/* Custom utility classes */
+.bg-primary { background-color: var(--color-primary); }
+.text-primary { color: var(--color-primary); }
+.border-primary { border-color: var(--color-primary); }
+.hover\:bg-primary:hover { background-color: var(--color-primary); }
+.hover\:text-primary:hover { color: var(--color-primary); }
+
+.bg-charcoal { background-color: var(--color-charcoal); }
+.text-charcoal { color: var(--color-charcoal); }
+.border-charcoal { border-color: var(--color-charcoal); }
+
+.bg-light-grey { background-color: var(--color-light-grey); }
+.border-light-grey { border-color: var(--color-light-grey); }
+
+.text-black { color: var(--color-black); }

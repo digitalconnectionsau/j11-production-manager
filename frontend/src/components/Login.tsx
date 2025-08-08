@@ -29,17 +29,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-light-grey">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">J11 Production Manager</h1>
-            <p className="text-blue-200">Sign in to your account</p>
+            <h1 className="text-3xl font-bold text-black mb-2">J11 Production Manager</h1>
+            <p className="text-charcoal">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
                 Email / Username
               </label>
               <input
@@ -48,13 +48,13 @@ const Login: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-white border border-light-grey rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                 placeholder="Enter your email or username"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
                 Password
               </label>
               <input
@@ -63,21 +63,21 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-white border border-light-grey rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                 placeholder="Enter your password"
               />
             </div>
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
-                <p className="text-red-200 text-sm">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full py-3 px-4 bg-primary hover:bg-primary hover:opacity-90 disabled:bg-gray-400 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -90,14 +90,14 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-white/20">
+          <div className="mt-6 pt-6 border-t border-light-grey">
             <button
               onClick={fillAdminCredentials}
-              className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg border border-white/30 transition-all"
+              className="w-full py-2 px-4 bg-light-grey hover:bg-primary hover:text-white text-charcoal text-sm rounded-lg border border-light-grey transition-all"
             >
               🔑 Use Default Admin Credentials
             </button>
-            <p className="text-center text-xs text-blue-200 mt-2">
+            <p className="text-center text-xs text-gray-500 mt-2">
               Default: j11-admin / j11!@#$
             </p>
           </div>
