@@ -464,7 +464,25 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       {/* Jobs/Tasks List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold">Jobs ({project.jobCount})</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Jobs ({project.jobCount})</h3>
+            <div className="flex space-x-3">
+              <button
+                className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                onClick={() => {/* TODO: Add job modal */}}
+              >
+                <span>➕</span>
+                <span>Add Job</span>
+              </button>
+              <button
+                className="bg-secondary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
+                onClick={() => {/* TODO: Bulk upload modal */}}
+              >
+                <span>📁</span>
+                <span>Bulk Upload</span>
+              </button>
+            </div>
+          </div>
         </div>
         {project.jobs && project.jobs.length > 0 ? (
           <div className="overflow-hidden">
@@ -481,13 +499,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                     Items
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nesting
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Machining
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assembly
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Delivery
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Delivery Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    Comments
                   </th>
                 </tr>
               </thead>
@@ -509,13 +536,26 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{job.items}</div>
-                        {job.comments && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {job.comments}
-                          </div>
-                        )}
+                      <div className="text-sm font-medium text-gray-900">{job.items}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.nestingDate ? new Date(job.nestingDate).toLocaleDateString() : '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.machiningDate ? new Date(job.machiningDate).toLocaleDateString() : '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.assemblyDate ? new Date(job.assemblyDate).toLocaleDateString() : '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.deliveryDate ? new Date(job.deliveryDate).toLocaleDateString() : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -524,12 +564,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {job.deliveryDate || '-'}
+                      <div className="text-sm text-gray-500 max-w-xs truncate">
+                        {job.comments || '-'}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(job.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

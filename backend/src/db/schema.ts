@@ -1,6 +1,20 @@
-import { pgTable, serial, integer, varchar, text, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, timestamp, boolean, pgEnum, date } from 'drizzle-orm/pg-core';
 
-// Enums
+// Job statuses table for flexible status management
+export const jobStatuses = pgTable('job_statuses', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 100 }).notNull(),
+  color: varchar('color', { length: 7 }).notNull(), // Hex color code
+  backgroundColor: varchar('background_color', { length: 7 }).notNull(),
+  orderIndex: integer('order_index').notNull().default(0),
+  isDefault: boolean('is_default').default(false),
+  isFinal: boolean('is_final').default(false), // Completion status
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Keep the enum for backward compatibility during migration
 export const jobStatusEnum = pgEnum('job_status', [
   'not-assigned', 
   'nesting-complete', 
@@ -58,7 +72,8 @@ export const jobs = pgTable('jobs', {
   machiningDate: varchar('machining_date', { length: 10 }), // DD/MM/YYYY format
   assemblyDate: varchar('assembly_date', { length: 10 }), // DD/MM/YYYY format
   deliveryDate: varchar('delivery_date', { length: 10 }), // DD/MM/YYYY format
-  status: jobStatusEnum('status').default('not-assigned'),
+  statusId: integer('status_id').references(() => jobStatuses.id).notNull(),
+  status: jobStatusEnum('status').default('not-assigned'), // Keep for migration
   comments: text('comments'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -83,6 +98,18 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Holidays table for Gold Coast, Queensland holidays
+export const holidays = pgTable('holidays', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  date: date('date').notNull(),
+  isPublic: boolean('is_public').default(true),
+  isCustom: boolean('is_custom').default(false),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -96,3 +123,7 @@ export type PinnedProject = typeof pinnedProjects.$inferSelect;
 export type NewPinnedProject = typeof pinnedProjects.$inferInsert;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+export type Holiday = typeof holidays.$inferSelect;
+export type NewHoliday = typeof holidays.$inferInsert;
+export type JobStatus = typeof jobStatuses.$inferSelect;
+export type NewJobStatus = typeof jobStatuses.$inferInsert;

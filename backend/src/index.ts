@@ -9,6 +9,8 @@ import userRoutes from './routes/users.js';
 import projectRoutes from './routes/projects.js';
 import clientRoutes from './routes/clients.js';
 import jobRoutes from './routes/jobs.js';
+import jobStatusRoutes from './routes/jobStatuses.js';
+import holidaysRoutes from './routes/holidays.js';
 import pinnedRoutes from './routes/pinned.js';
 
 // Load environment variables
@@ -50,6 +52,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use('/api/job-statuses', jobStatusRoutes);
+app.use('/api/holidays', holidaysRoutes);
 app.use('/api/pinned', pinnedRoutes);
 
 // 404 handler

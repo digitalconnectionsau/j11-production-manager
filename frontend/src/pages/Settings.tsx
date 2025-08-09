@@ -1,15 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-
-interface UserSettings {
-  id: number;
-  email: string;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
-  mobile?: string;
-  role: string;
-}
+import React, { useState } from 'react';
+// import JobStatusManagement from '../components/settings/JobStatusManagement';
+import HolidaysManagement from '../components/HolidaysManagement';
 
 interface AppSettings {
   companyName: string;
@@ -24,8 +15,7 @@ interface AppSettings {
 }
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'system'>('profile');
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'company' | 'system'>('holidays');
   const [appSettings, setAppSettings] = useState<AppSettings>({
     companyName: 'J11 Productions',
     companyEmail: 'info@j11productions.com',
@@ -39,44 +29,6 @@ const Settings: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const { user, token } = useAuth();
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-  // Update user profile
-  const updateUserProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userSettings) return;
-
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: userSettings.username,
-          firstName: userSettings.firstName,
-          lastName: userSettings.lastName,
-          mobile: userSettings.mobile,
-        }),
-      });
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Profile updated successfully!' });
-        setTimeout(() => setMessage(null), 3000);
-      } else {
-        throw new Error('Failed to update profile');
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to update profile' });
-      setTimeout(() => setMessage(null), 3000);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Update company settings
   const updateCompanySettings = async (e: React.FormEvent) => {
@@ -94,67 +46,9 @@ const Settings: React.FC = () => {
     }
   };
 
-  // Change password
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  const changePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
-      setTimeout(() => setMessage(null), 3000);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/users/change-password`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
-      });
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Password changed successfully!' });
-        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setTimeout(() => setMessage(null), 3000);
-      } else {
-        throw new Error('Failed to change password');
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to change password' });
-      setTimeout(() => setMessage(null), 3000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      setUserSettings({
-        id: user.id,
-        email: user.email,
-        username: user.username || '',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        mobile: user.mobile || '',
-        role: user.role || 'user'
-      });
-    }
-  }, [user]);
-
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
+    { id: 'holidays', label: 'Holidays', icon: '📅' },
+    { id: 'job-status', label: 'Job Status', icon: '�' },
     { id: 'company', label: 'Company', icon: '🏢' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
@@ -198,146 +92,19 @@ const Settings: React.FC = () => {
         </nav>
       </div>
 
-      {/* Profile Tab */}
-      {activeTab === 'profile' && userSettings && (
-        <div className="space-y-8">
-          {/* User Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-            <form onSubmit={updateUserProfile}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={userSettings.email}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    value={userSettings.username || ''}
-                    onChange={(e) => setUserSettings({...userSettings, username: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userSettings.firstName || ''}
-                    onChange={(e) => setUserSettings({...userSettings, firstName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userSettings.lastName || ''}
-                    onChange={(e) => setUserSettings({...userSettings, lastName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={userSettings.mobile || ''}
-                    onChange={(e) => setUserSettings({...userSettings, mobile: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Role
-                  </label>
-                  <input
-                    type="text"
-                    value={userSettings.role}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-              <div className="mt-6">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Updating...' : 'Update Profile'}
-                </button>
-              </div>
-            </form>
-          </div>
+      {/* Holidays Tab */}
+      {activeTab === 'holidays' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <HolidaysManagement />
+        </div>
+      )}
 
-          {/* Change Password */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Change Password</h3>
-            <form onSubmit={changePassword}>
-              <div className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div className="mt-6">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Changing...' : 'Change Password'}
-                </button>
-              </div>
-            </form>
+      {/* Job Status Tab */}
+      {activeTab === 'job-status' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="text-center py-8">
+            <p className="text-gray-600">Job Status management is temporarily disabled due to a syntax issue.</p>
+            <p className="text-gray-500 text-sm mt-2">Please check the console for more details.</p>
           </div>
         </div>
       )}
@@ -460,6 +227,14 @@ const Settings: React.FC = () => {
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* System Preferences */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold mb-4">System Preferences</h3>
+            <p className="text-gray-600 text-sm">
+              Additional system configuration options will be available here.
+            </p>
           </div>
 
           {/* Project Configuration */}
