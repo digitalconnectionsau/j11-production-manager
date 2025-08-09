@@ -1,0 +1,9 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <!-- Secondary person (behind) -->
+  <circle cx="16" cy="8" r="3"/>
+  <path d="M18.5 14c-1.33 0-2.55.47-3.53 1.26.14.29.26.6.34.92.15.62.18 1.27.18 1.82h6c0-2.21-1.79-4-4-4z"/>
+  
+  <!-- Primary person (front) -->
+  <circle cx="8" cy="10" r="4"/>
+  <path d="M8 15c-3.31 0-6 2.02-6 4.5V21h12v-1.5C14 17.02 11.31 15 8 15z"/>
+</svg>

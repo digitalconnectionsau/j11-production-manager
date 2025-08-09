@@ -1,190 +1,191 @@
 import { Router } from 'express';
 import { db } from '../db/index.js';
 import { eq, desc } from 'drizzle-orm';
-import { productionTasks, projectTasks, projects, users } from '../db/schema.js';
+import { jobs, projects, clients } from '../db/schema.js';
 import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// Get all jobs/tasks
+// Get all jobs
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const tasks = await db
+    const allJobs = await db
       .select({
-        id: productionTasks.id,
-        title: productionTasks.title,
-        description: productionTasks.description,
-        status: productionTasks.status,
-        priority: productionTasks.priority,
-        assignedToId: productionTasks.assignedToId,
-        createdAt: productionTasks.createdAt,
-        updatedAt: productionTasks.updatedAt,
+        id: jobs.id,
+        projectId: jobs.projectId,
+        unit: jobs.unit,
+        type: jobs.type,
+        items: jobs.items,
+        nestingDate: jobs.nestingDate,
+        machiningDate: jobs.machiningDate,
+        assemblyDate: jobs.assemblyDate,
+        deliveryDate: jobs.deliveryDate,
+        status: jobs.status,
+        comments: jobs.comments,
+        createdAt: jobs.createdAt,
+        updatedAt: jobs.updatedAt,
+        projectName: projects.name,
+        clientName: clients.name,
       })
-      .from(productionTasks)
-      .orderBy(desc(productionTasks.createdAt));
+      .from(jobs)
+      .leftJoin(projects, eq(jobs.projectId, projects.id))
+      .leftJoin(clients, eq(projects.clientId, clients.id))
+      .orderBy(desc(jobs.createdAt));
 
-    res.json(tasks);
+    res.json(allJobs);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    res.status(500).json({ error: 'Failed to fetch tasks' });
+    console.error('Error fetching jobs:', error);
+    res.status(500).json({ error: 'Failed to fetch jobs' });
   }
 });
 
-// Get single job/task by ID
+// Get single job by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const taskId = parseInt(req.params.id);
+    const jobId = parseInt(req.params.id);
     
-    const task = await db
+    const job = await db
       .select({
-        id: productionTasks.id,
-        title: productionTasks.title,
-        description: productionTasks.description,
-        status: productionTasks.status,
-        priority: productionTasks.priority,
-        assignedToId: productionTasks.assignedToId,
-        createdAt: productionTasks.createdAt,
-        updatedAt: productionTasks.updatedAt,
-        assignedToFirstName: users.firstName,
-        assignedToLastName: users.lastName,
-        assignedToEmail: users.email,
+        id: jobs.id,
+        projectId: jobs.projectId,
+        unit: jobs.unit,
+        type: jobs.type,
+        items: jobs.items,
+        nestingDate: jobs.nestingDate,
+        machiningDate: jobs.machiningDate,
+        assemblyDate: jobs.assemblyDate,
+        deliveryDate: jobs.deliveryDate,
+        status: jobs.status,
+        comments: jobs.comments,
+        createdAt: jobs.createdAt,
+        updatedAt: jobs.updatedAt,
+        projectName: projects.name,
+        clientName: clients.name,
       })
-      .from(productionTasks)
-      .leftJoin(users, eq(productionTasks.assignedToId, users.id))
-      .where(eq(productionTasks.id, taskId))
+      .from(jobs)
+      .leftJoin(projects, eq(jobs.projectId, projects.id))
+      .leftJoin(clients, eq(projects.clientId, clients.id))
+      .where(eq(jobs.id, jobId))
       .limit(1);
 
-    if (task.length === 0) {
-      return res.status(404).json({ error: 'Task not found' });
+    if (job.length === 0) {
+      return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Get project information for this task
-    const projectInfo = await db
-      .select({
-        projectId: projects.id,
-        projectName: projects.name,
-      })
-      .from(projectTasks)
-      .innerJoin(projects, eq(projectTasks.projectId, projects.id))
-      .where(eq(projectTasks.taskId, taskId))
-      .limit(1);
-
-    const taskWithDetails = {
-      ...task[0],
-      assignedTo: task[0].assignedToFirstName || task[0].assignedToLastName ? {
-        id: task[0].assignedToId,
-        name: `${task[0].assignedToFirstName || ''} ${task[0].assignedToLastName || ''}`.trim(),
-        email: task[0].assignedToEmail,
-      } : null,
-      project: projectInfo.length > 0 ? {
-        id: projectInfo[0].projectId,
-        name: projectInfo[0].projectName,
-      } : null,
-    };
-
-    // Remove the flattened fields
-    const { assignedToFirstName, assignedToLastName, assignedToEmail, ...cleanTask } = taskWithDetails;
-
-    res.json(cleanTask);
+    res.json(job[0]);
   } catch (error) {
-    console.error('Error fetching task:', error);
-    res.status(500).json({ error: 'Failed to fetch task' });
+    console.error('Error fetching job:', error);
+    res.status(500).json({ error: 'Failed to fetch job' });
   }
 });
 
-// Create new job/task
+// Create new job
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { title, description, status = 'pending', priority = 'medium', assignedToId, projectId } = req.body;
+    const { 
+      projectId, 
+      unit, 
+      type, 
+      items, 
+      nestingDate, 
+      machiningDate, 
+      assemblyDate, 
+      deliveryDate, 
+      status = 'not-assigned', 
+      comments 
+    } = req.body;
 
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+    if (!projectId || !items) {
+      return res.status(400).json({ error: 'Project ID and items are required' });
     }
 
-    const [newTask] = await db
-      .insert(productionTasks)
+    const [newJob] = await db
+      .insert(jobs)
       .values({
-        title,
-        description,
+        projectId,
+        unit,
+        type,
+        items,
+        nestingDate,
+        machiningDate,
+        assemblyDate,
+        deliveryDate,
         status,
-        priority,
-        assignedToId,
+        comments,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
 
-    // If projectId is provided, link the task to the project
-    if (projectId) {
-      await db
-        .insert(projectTasks)
-        .values({
-          projectId,
-          taskId: newTask.id,
-        });
-    }
-
-    res.status(201).json(newTask);
+    res.status(201).json(newJob);
   } catch (error) {
-    console.error('Error creating task:', error);
-    res.status(500).json({ error: 'Failed to create task' });
+    console.error('Error creating job:', error);
+    res.status(500).json({ error: 'Failed to create job' });
   }
 });
 
-// Update job/task
+// Update job
 router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const taskId = parseInt(req.params.id);
-    const { title, description, status, priority, assignedToId } = req.body;
+    const jobId = parseInt(req.params.id);
+    const { 
+      unit, 
+      type, 
+      items, 
+      nestingDate, 
+      machiningDate, 
+      assemblyDate, 
+      deliveryDate, 
+      status, 
+      comments 
+    } = req.body;
 
-    const [updatedTask] = await db
-      .update(productionTasks)
+    const [updatedJob] = await db
+      .update(jobs)
       .set({
-        title,
-        description,
+        unit,
+        type,
+        items,
+        nestingDate,
+        machiningDate,
+        assemblyDate,
+        deliveryDate,
         status,
-        priority,
-        assignedToId,
+        comments,
         updatedAt: new Date(),
       })
-      .where(eq(productionTasks.id, taskId))
+      .where(eq(jobs.id, jobId))
       .returning();
 
-    if (!updatedTask) {
-      return res.status(404).json({ error: 'Task not found' });
+    if (!updatedJob) {
+      return res.status(404).json({ error: 'Job not found' });
     }
 
-    res.json(updatedTask);
+    res.json(updatedJob);
   } catch (error) {
-    console.error('Error updating task:', error);
-    res.status(500).json({ error: 'Failed to update task' });
+    console.error('Error updating job:', error);
+    res.status(500).json({ error: 'Failed to update job' });
   }
 });
 
-// Delete job/task
+// Delete job
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const taskId = parseInt(req.params.id);
+    const jobId = parseInt(req.params.id);
 
-    // First remove any project associations
-    await db
-      .delete(projectTasks)
-      .where(eq(projectTasks.taskId, taskId));
-
-    // Then delete the task
-    const [deletedTask] = await db
-      .delete(productionTasks)
-      .where(eq(productionTasks.id, taskId))
+    const [deletedJob] = await db
+      .delete(jobs)
+      .where(eq(jobs.id, jobId))
       .returning();
 
-    if (!deletedTask) {
-      return res.status(404).json({ error: 'Task not found' });
+    if (!deletedJob) {
+      return res.status(404).json({ error: 'Job not found' });
     }
 
-    res.json({ message: 'Task deleted successfully' });
+    res.json({ message: 'Job deleted successfully' });
   } catch (error) {
-    console.error('Error deleting task:', error);
-    res.status(500).json({ error: 'Failed to delete task' });
+    console.error('Error deleting job:', error);
+    res.status(500).json({ error: 'Failed to delete job' });
   }
 });
 

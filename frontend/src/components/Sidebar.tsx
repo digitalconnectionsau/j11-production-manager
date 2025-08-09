@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import Icon from './Icon';
 
 interface PinnedProject {
   id: number;
@@ -27,11 +28,36 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const menuItems = [
-    { id: 'Dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'Clients', label: 'Clients', icon: '👥' },
-    { id: 'Projects', label: 'Projects', icon: '📁' },
-    { id: 'Reports', label: 'Reports', icon: '📈' },
-    { id: 'Settings', label: 'Settings', icon: '⚙️' },
+    { 
+      id: 'Dashboard',
+      name: 'Dashboard', 
+      icon: 'dashboard',
+      href: '/' 
+    },
+    { 
+      id: 'Clients',
+      name: 'Clients', 
+      icon: 'clients',
+      href: '/clients' 
+    },
+    { 
+      id: 'Projects',
+      name: 'Projects', 
+      icon: 'projects',
+      href: '/projects' 
+    },
+    { 
+      id: 'Reports',
+      name: 'Reports', 
+      icon: 'reports',
+      href: '/reports' 
+    },
+    { 
+      id: 'Settings',
+      name: 'Settings', 
+      icon: 'settings',
+      href: '/settings' 
+    },
   ];
 
   // Fetch pinned projects
@@ -88,19 +114,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
     <div className="fixed left-0 top-0 w-64 bg-charcoal text-white h-screen flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-light-grey border-opacity-20">
-        <h1 className="text-xl font-bold text-white">Joinery Eleven</h1>
-        <p className="text-gray-300 text-sm">Production Manager</p>
+        <div className="flex items-center space-x-3">
+          <img 
+            src="/favicon.svg" 
+            alt="J11 Logo" 
+            width="40" 
+            height="40" 
+            className="flex-shrink-0"
+          />
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">Joinery Eleven</h1>
+            <p className="text-gray-300 text-sm -mt-0.8">Production Manager</p>
+          </div>
+        </div>
       </div>
 
       {/* User Info */}
       <div className="p-4 border-b border-light-grey border-opacity-20">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-sm font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
           </div>
           <div>
             <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-300">{user?.role || 'User'}</p>
+            <p className="text-xs text-gray-300 capitalize">{user?.role || 'User'}</p>
           </div>
         </div>
       </div>
@@ -118,8 +155,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
                     : 'text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
+                <span className="w-6 h-6 flex items-center justify-center text-lg">
+                  <Icon name={item.icon} size={24} />
+                </span>
+                <span className="font-medium">{item.name}</span>
               </button>
             </li>
           ))}
@@ -138,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
                       className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white rounded transition-all duration-200 flex items-center justify-between group"
                     >
                       <div className="flex items-center space-x-2 min-w-0 flex-1">
-                        <span className="text-xs">📌</span>
+                        <Icon name="pin" size={12} />
                         <span className="truncate font-medium">
                           {pinnedProject.project.name}
                         </span>
@@ -178,7 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
           onClick={handleLogout}
           className="w-full flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200"
         >
-          <span className="text-lg">🚪</span>
+          <Icon name="logout" size={24} />
           <span className="font-medium">Logout</span>
         </button>
       </div>

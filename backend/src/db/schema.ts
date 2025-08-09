@@ -1,8 +1,13 @@
-import { pgTable, serial, varchar, text, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
 // Enums
-export const taskStatusEnum = pgEnum('task_status', ['pending', 'in-progress', 'completed']);
-export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high']);
+export const jobStatusEnum = pgEnum('job_status', [
+  'not-assigned', 
+  'nesting-complete', 
+  'machining-complete', 
+  'assembly-complete', 
+  'delivered'
+]);
 
 // Users table
 export const users = pgTable('users', {
@@ -19,8 +24,8 @@ export const users = pgTable('users', {
 // Clients table
 export const clients = pgTable('clients', {
   id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  company: varchar('company', { length: 255 }),
+  name: varchar('name', { length: 255 }).notNull(), // Quick/short name for daily use
+  company: varchar('company', { length: 255 }), // Official company name
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 20 }),
   address: text('address'),
@@ -31,43 +36,50 @@ export const clients = pgTable('clients', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-// Production tasks table
-export const productionTasks = pgTable('production_tasks', {
-  id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  status: taskStatusEnum('status').default('pending'),
-  priority: taskPriorityEnum('priority').default('medium'),
-  assignedToId: serial('assigned_to_id').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
 // Projects table
 export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   status: varchar('status', { length: 50 }).default('active'),
-  clientId: serial('client_id').references(() => clients.id),
+  clientId: integer('client_id').references(() => clients.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-// Project tasks junction table
-export const projectTasks = pgTable('project_tasks', {
+// Jobs table (replaces production_tasks + project_tasks)
+export const jobs = pgTable('jobs', {
   id: serial('id').primaryKey(),
-  projectId: serial('project_id').references(() => projects.id),
-  taskId: serial('task_id').references(() => productionTasks.id),
+  projectId: integer('project_id').references(() => projects.id),
+  unit: varchar('unit', { length: 100 }), // L5, B1, 1003, etc.
+  type: varchar('type', { length: 255 }), // B1.28/29, All Units, SPA, etc.
+  items: varchar('items', { length: 255 }).notNull(), // Substrates, Kitchen & Butlers, etc.
+  nestingDate: varchar('nesting_date', { length: 10 }), // DD/MM/YYYY format
+  machiningDate: varchar('machining_date', { length: 10 }), // DD/MM/YYYY format
+  assemblyDate: varchar('assembly_date', { length: 10 }), // DD/MM/YYYY format
+  deliveryDate: varchar('delivery_date', { length: 10 }), // DD/MM/YYYY format
+  status: jobStatusEnum('status').default('not-assigned'),
+  comments: text('comments'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Pinned projects table
 export const pinnedProjects = pgTable('pinned_projects', {
   id: serial('id').primaryKey(),
-  projectId: serial('project_id').references(() => projects.id),
-  userId: serial('user_id').references(() => users.id),
-  order: serial('order').notNull().default(0),
+  projectId: integer('project_id').references(() => projects.id),
+  userId: integer('user_id').references(() => users.id),
+  order: integer('order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Password reset tokens table
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id),
+  token: varchar('token', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -76,9 +88,11 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
-export type ProductionTask = typeof productionTasks.$inferSelect;
-export type NewProductionTask = typeof productionTasks.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+export type Job = typeof jobs.$inferSelect;
+export type NewJob = typeof jobs.$inferInsert;
 export type PinnedProject = typeof pinnedProjects.$inferSelect;
 export type NewPinnedProject = typeof pinnedProjects.$inferInsert;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;

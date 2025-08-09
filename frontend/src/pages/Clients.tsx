@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AddClientModal from '../components/AddClientModal';
 
 interface Client {
   id: number;
@@ -13,7 +14,6 @@ interface Client {
   isActive: boolean;
   status: string;
   projects: number;
-  lastContact: string;
 }
 
 interface ClientsProps {
@@ -95,34 +95,6 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error creating client:', err);
-    }
-  };
-
-  // Delete client
-  const deleteClient = async (clientId: number) => {
-    if (!confirm('Are you sure you want to delete this client?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/api/clients/${clientId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete client');
-      }
-
-      // Refresh the clients list
-      fetchClients();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error deleting client:', err);
     }
   };
 
@@ -244,13 +216,13 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1">
-              Search Clients
+              Search Companies
             </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, company, contact..."
+              placeholder="Search by company name, contact person..."
               className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -297,16 +269,28 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
           </div>
 
           {/* Hide Inactive Toggle */}
-          <div className="flex items-end">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hideInactive}
-                onChange={(e) => setHideInactive(e.target.checked)}
-                className="w-4 h-4 text-primary border-light-grey rounded focus:ring-primary"
-              />
-              <span className="text-sm font-medium text-charcoal">Hide Inactive</span>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1">
+              Hide Inactive
             </label>
+            <div className="flex items-center h-10">
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <span className="text-sm text-charcoal">Off</span>
+                <div
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                    hideInactive ? 'bg-primary' : 'bg-gray-200'
+                  }`}
+                  onClick={() => setHideInactive(!hideInactive)}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                      hideInactive ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </div>
+                <span className="text-sm text-charcoal">On</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -363,7 +347,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center space-x-1">
-                    <span>Client</span>
+                    <span>Company</span>
                     {sortField === 'name' && (
                       <span className="text-primary">
                         {sortDirection === 'asc' ? '↑' : '↓'}
@@ -411,9 +395,6 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                   </div>
                 </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
-                  Last Contact
-                </th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-charcoal uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -429,16 +410,22 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                     <div>
                       <div className="text-sm font-medium text-black">{client.name}</div>
                       {client.company && (
-                        <div className="text-sm text-charcoal">{client.company}</div>
-                      )}
-                      {client.contactPerson && (
-                        <div className="text-xs text-charcoal">Contact: {client.contactPerson}</div>
+                        <div className="text-sm text-charcoal">Official: {client.company}</div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-black">{client.email}</div>
-                    <div className="text-sm text-charcoal">{client.phone}</div>
+                    <div>
+                      {client.contactPerson && (
+                        <div className="text-sm font-medium text-black">{client.contactPerson}</div>
+                      )}
+                      {client.email && (
+                        <div className="text-sm text-charcoal">{client.email}</div>
+                      )}
+                      {client.phone && (
+                        <div className="text-sm text-charcoal">{client.phone}</div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -452,27 +439,15 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                   <td className="px-6 py-4 text-sm text-black">
                     {client.projects}
                   </td>
-                  <td className="px-6 py-4 text-sm text-black">
-                    {client.lastContact}
-                  </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     <button 
-                      className="text-primary hover:opacity-80 mr-3"
+                      className="text-primary hover:opacity-80"
                       onClick={(e) => {
                         e.stopPropagation();
                         // Edit functionality - to be implemented
                       }}
                     >
                       Edit
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteClient(client.id);
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
                     </button>
                   </td>
                 </tr>
@@ -484,171 +459,11 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
       </div>
 
       {/* Add Client Modal */}
-      {showAddModal && (
-        <AddClientModal 
-          onClose={() => setShowAddModal(false)}
-          onSubmit={addClient}
-        />
-      )}
-    </div>
-  );
-};
-
-// Add Client Modal Component
-interface AddClientModalProps {
-  onClose: () => void;
-  onSubmit: (clientData: { 
-    name: string; 
-    company: string; 
-    email: string; 
-    phone: string; 
-    address?: string;
-    contactPerson?: string;
-    notes?: string;
-  }) => void;
-}
-
-const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    company: '',
-    email: '',
-    phone: '',
-    address: '',
-    contactPerson: '',
-    notes: ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
-      alert('Client name is required');
-      return;
-    }
-    onSubmit(formData);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md border border-light-grey">
-        <h2 className="text-xl font-bold text-black mb-4">Add New Client</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Client Name *
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter client name"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Company
-            </label>
-            <input
-              type="text"
-              name="company"
-              value={formData.company}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter company name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Contact Person
-            </label>
-            <input
-              type="text"
-              name="contactPerson"
-              value={formData.contactPerson}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter contact person name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter email address"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Phone
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter phone number"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Address
-            </label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows={2}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter address"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={2}
-              className="w-full px-3 py-2 border border-light-grey rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter notes"
-            />
-          </div>
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 text-charcoal bg-light-grey rounded-md hover:bg-opacity-80 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 text-white bg-primary rounded-md hover:opacity-90 transition-colors"
-            >
-              Add Client
-            </button>
-          </div>
-        </form>
-      </div>
+      <AddClientModal 
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={addClient}
+      />
     </div>
   );
 };

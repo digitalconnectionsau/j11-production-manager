@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+interface Contact {
+  id?: number;
+  firstName: string;
+  lastName: string;
+  position?: string;
+  email?: string;
+  mobile?: string;
+  directNumber?: string;
+  isPrimary: boolean;
+}
+
 interface Client {
   id: number;
   name: string;
@@ -12,8 +23,11 @@ interface Client {
   notes?: string;
   isActive: boolean;
   status: string;
-  projects: number;
-  lastContact: string;
+  projects: number; // Currently just a count, not an array
+  lastContact?: string;
+  contacts?: Contact[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ClientDetailsProps {
@@ -25,8 +39,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Client | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'details'>('overview');
+  
+  // Future modal states - will be used when modals are implemented
+  // @ts-ignore
+  const [showAddContactModal, setShowAddContactModal] = useState(false);
+  // @ts-ignore
+  const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -48,61 +67,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
 
       const data = await response.json();
       setClient(data);
-      setEditForm(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch client');
     } finally {
       setLoading(false);
     }
-  };
-
-  // Update client
-  const updateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editForm) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/clients/${clientId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: editForm.name,
-          company: editForm.company || null,
-          email: editForm.email || null,
-          phone: editForm.phone || null,
-          address: editForm.address || null,
-          contactPerson: editForm.contactPerson || null,
-          notes: editForm.notes || null,
-          isActive: editForm.isActive,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update client');
-      }
-
-      const updatedClient = await response.json();
-      setClient(updatedClient);
-      setIsEditing(false);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update client');
-    }
-  };
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (!editForm) return;
-    
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    
-    setEditForm({
-      ...editForm,
-      [name]: type === 'checkbox' ? checked : value,
-    });
   };
 
   useEffect(() => {
@@ -130,9 +99,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       <div className="p-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
-          ← Back to Clients
+          ← Back to Companies
         </button>
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="text-red-800">Error: {error}</div>
@@ -146,11 +115,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       <div className="p-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
-          ← Back to Clients
+          ← Back to Companies
         </button>
-        <div className="text-gray-500">Client not found</div>
+        <div className="text-gray-500">Company not found</div>
       </div>
     );
   }
@@ -161,229 +130,241 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       <div className="mb-6">
         <button
           onClick={onBack}
-          className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
         >
-          ← Back to Clients
+          ← Back to Companies
         </button>
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{client.name}</h1>
+            <h1 className="text-3xl font-bold text-black">{client.name}</h1>
             {client.company && (
-              <p className="text-lg text-gray-600 mt-1">{client.company}</p>
+              <p className="text-lg text-charcoal mt-1">{client.company}</p>
             )}
           </div>
-          <div className="flex space-x-3">
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-              >
-                Edit Client
-              </button>
-            ) : (
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditForm(client);
-                  }}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={updateClient}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
-            )}
+          <div className="flex items-center space-x-3">
+            <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+              client.isActive 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {client.isActive ? 'Active' : 'Inactive'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="mb-6">
-        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-          client.isActive 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-red-100 text-red-800'
-        }`}>
-          {client.isActive ? 'Active' : 'Inactive'}
-        </span>
+      {/* Tabs */}
+      <div className="border-b border-light-grey mb-6">
+        <nav className="flex space-x-8">
+          {[
+            { key: 'overview', label: 'Overview' },
+            { key: 'projects', label: 'Projects' },
+            { key: 'details', label: 'Details' }
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab.key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-charcoal hover:text-black hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {/* Client Details */}
-      {isEditing && editForm ? (
-        <form onSubmit={updateClient} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Client Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={editForm.name}
-                onChange={handleEditChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company
-              </label>
-              <input
-                type="text"
-                name="company"
-                value={editForm.company || ''}
-                onChange={handleEditChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={editForm.email || ''}
-                onChange={handleEditChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={editForm.phone || ''}
-                onChange={handleEditChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Person
-              </label>
-              <input
-                type="text"
-                name="contactPerson"
-                value={editForm.contactPerson || ''}
-                onChange={handleEditChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={editForm.isActive}
-                  onChange={handleEditChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-700">
-                  Active Client
-                </label>
-              </div>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Address
-            </label>
-            <textarea
-              name="address"
-              value={editForm.address || ''}
-              onChange={handleEditChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              value={editForm.notes || ''}
-              onChange={handleEditChange}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </form>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Contact Information</h3>
-              <div className="space-y-2">
-                {client.email && (
-                  <div>
-                    <span className="text-sm text-gray-600">Email:</span>
-                    <a href={`mailto:${client.email}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
-                      {client.email}
-                    </a>
-                  </div>
-                )}
-                {client.phone && (
-                  <div>
-                    <span className="text-sm text-gray-600">Phone:</span>
-                    <a href={`tel:${client.phone}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
-                      {client.phone}
-                    </a>
-                  </div>
-                )}
-                {client.contactPerson && (
-                  <div>
-                    <span className="text-sm text-gray-600">Contact Person:</span>
-                    <span className="text-sm text-gray-900 ml-2">{client.contactPerson}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Business Information</h3>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm text-gray-600">Projects:</span>
-                  <span className="text-sm text-gray-900 ml-2">{client.projects}</span>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Last Contact:</span>
-                  <span className="text-sm text-gray-900 ml-2">{client.lastContact}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {client.address && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Address</h3>
-              <p className="text-sm text-gray-900 whitespace-pre-line">{client.address}</p>
-            </div>
-          )}
-          
-          {client.notes && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Notes</h3>
-              <p className="text-sm text-gray-900 whitespace-pre-line">{client.notes}</p>
-            </div>
-          )}
-        </div>
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <OverviewTab client={client} />
       )}
+
+      {activeTab === 'projects' && (
+        <ProjectsTab 
+          client={client} 
+          onAddProject={() => setShowAddProjectModal(true)}
+        />
+      )}
+
+      {activeTab === 'details' && (
+        <DetailsTab 
+          client={client} 
+          onAddContact={() => setShowAddContactModal(true)}
+        />
+      )}
+
+      {/* Modals would go here */}
     </div>
   );
 };
+
+// Overview Tab Component
+const OverviewTab: React.FC<{ client: Client }> = ({ client }) => (
+  <div className="space-y-6">
+    {/* Key Stats */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+        <h3 className="text-sm font-medium text-charcoal mb-2">Total Projects</h3>
+        <p className="text-3xl font-bold text-black">{client.projects || 0}</p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+        <h3 className="text-sm font-medium text-charcoal mb-2">Active Projects</h3>
+        <p className="text-3xl font-bold text-primary">
+          {/* For now, we'll show the same count since we don't have active vs inactive breakdown */}
+          {client.projects || 0}
+        </p>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+        <h3 className="text-sm font-medium text-charcoal mb-2">Company Status</h3>
+        <p className={`text-sm font-semibold ${client.isActive ? 'text-green-600' : 'text-red-600'}`}>
+          {client.isActive ? 'Active' : 'Inactive'}
+        </p>
+      </div>
+    </div>
+
+    {/* Quick Info */}
+    <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+      <h3 className="text-lg font-medium text-black mb-4">Company Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h4 className="text-sm font-medium text-charcoal mb-2">Contact Details</h4>
+          <div className="space-y-2">
+            {client.contactPerson && (
+              <p className="text-sm text-black">Contact: {client.contactPerson}</p>
+            )}
+            {client.email && (
+              <p className="text-sm text-primary">{client.email}</p>
+            )}
+            {client.phone && (
+              <p className="text-sm text-black">{client.phone}</p>
+            )}
+          </div>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-charcoal mb-2">Address</h4>
+          <p className="text-sm text-black whitespace-pre-line">
+            {client.address || 'No address provided'}
+          </p>
+        </div>
+      </div>
+      {client.notes && (
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-charcoal mb-2">Notes</h4>
+          <p className="text-sm text-black whitespace-pre-line">{client.notes}</p>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// Projects Tab Component
+const ProjectsTab: React.FC<{ client: Client; onAddProject: () => void }> = ({ client, onAddProject }) => (
+  <div className="space-y-6">
+    <div className="flex justify-between items-center">
+      <h3 className="text-lg font-medium text-black">Projects</h3>
+      <button
+        onClick={onAddProject}
+        className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+      >
+        + Add Project
+      </button>
+    </div>
+
+    {/* TODO: Replace this with actual project data from backend */}
+    <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-light-grey">
+      <div className="mb-4">
+        <p className="text-charcoal">Projects feature coming soon</p>
+        <p className="text-sm text-charcoal mt-2">
+          This company has {client.projects || 0} project{client.projects === 1 ? '' : 's'} in the database
+        </p>
+      </div>
+      <button
+        onClick={onAddProject}
+        className="mt-4 text-primary hover:opacity-80 font-medium"
+      >
+        Add the first project
+      </button>
+    </div>
+  </div>
+);
+
+// Details Tab Component
+const DetailsTab: React.FC<{ client: Client; onAddContact: () => void }> = ({ client, onAddContact }) => (
+  <div className="space-y-6">
+    {/* Company Details */}
+    <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+      <h3 className="text-lg font-medium text-black mb-4">Company Details</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-charcoal mb-1">Company Name (Short)</label>
+          <p className="text-sm text-black">{client.name}</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-charcoal mb-1">Official Company Name</label>
+          <p className="text-sm text-black">{client.company || 'Not provided'}</p>
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-charcoal mb-1">Address</label>
+          <p className="text-sm text-black whitespace-pre-line">{client.address || 'No address provided'}</p>
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-charcoal mb-1">Notes</label>
+          <p className="text-sm text-black whitespace-pre-line">{client.notes || 'No notes'}</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Contacts */}
+    <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium text-black">Contacts</h3>
+        <button
+          onClick={onAddContact}
+          className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          + Add Contact
+        </button>
+      </div>
+
+      {/* Primary Contact (from existing data) */}
+      {client.contactPerson && (
+        <div className="border border-light-grey rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="text-sm font-medium text-black">{client.contactPerson}</h4>
+              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-primary bg-opacity-10 text-primary">
+                Primary Contact
+              </span>
+              <div className="mt-2 space-y-1">
+                {client.email && (
+                  <p className="text-sm text-charcoal">Email: {client.email}</p>
+                )}
+                {client.phone && (
+                  <p className="text-sm text-charcoal">Phone: {client.phone}</p>
+                )}
+              </div>
+            </div>
+            <button className="text-primary hover:opacity-80 text-sm">Edit</button>
+          </div>
+        </div>
+      )}
+
+      {/* Additional contacts would be listed here */}
+      {(!client.contacts || client.contacts.length === 0) && !client.contactPerson && (
+        <div className="text-center py-8">
+          <p className="text-charcoal">No contacts added yet</p>
+          <button
+            onClick={onAddContact}
+            className="mt-2 text-primary hover:opacity-80 font-medium"
+          >
+            Add the first contact
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 export default ClientDetails;

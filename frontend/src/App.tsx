@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
+import ResetPassword from './components/ResetPassword';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -17,6 +18,16 @@ const AppContent: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  // Check for reset password token in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      setResetToken(token);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -30,6 +41,19 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
+    // Show reset password page if there's a token
+    if (resetToken) {
+      return (
+        <ResetPassword 
+          token={resetToken} 
+          onBack={() => {
+            setResetToken(null);
+            // Clear URL parameters
+            window.history.replaceState({}, '', window.location.pathname);
+          }} 
+        />
+      );
+    }
     return <Login />;
   }
 

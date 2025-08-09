@@ -3,11 +3,16 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface Job {
   id: number;
-  title: string;
-  description?: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  assignedToId?: number;
+  projectId: number;
+  unit?: string;
+  type?: string;
+  items: string;
+  nestingDate?: string;
+  machiningDate?: string;
+  assemblyDate?: string;
+  deliveryDate?: string;
+  status: 'not-assigned' | 'nesting-complete' | 'machining-complete' | 'assembly-complete' | 'delivered';
+  comments?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,19 +207,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         return 'bg-blue-100 text-blue-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-light-grey text-charcoal';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
       default:
         return 'bg-light-grey text-charcoal';
     }
@@ -480,13 +472,19 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Job Title
+                    Unit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Items
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
+                    Delivery Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
@@ -501,11 +499,21 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                     onClick={() => onJobSelect?.(job.id)}
                   >
                     <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {job.unit || '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.type || '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{job.title}</div>
-                        {job.description && (
+                        <div className="text-sm font-medium text-gray-900">{job.items}</div>
+                        {job.comments && (
                           <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {job.description}
+                            {job.comments}
                           </div>
                         )}
                       </div>
@@ -516,9 +524,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(job.priority)}`}>
-                        {job.priority}
-                      </span>
+                      <div className="text-sm text-gray-900">
+                        {job.deliveryDate || '-'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(job.createdAt).toLocaleDateString()}

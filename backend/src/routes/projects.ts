@@ -1,7 +1,7 @@
 import express from 'express';
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { projects, clients, projectTasks, productionTasks } from '../db/schema.js';
+import { projects, clients, jobs } from '../db/schema.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -30,15 +30,14 @@ router.get('/', authenticateToken, async (req, res) => {
       allProjects.map(async (project) => {
         const jobCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(projectTasks)
-          .where(eq(projectTasks.projectId, project.id));
+          .from(jobs)
+          .where(eq(jobs.projectId, project.id));
 
         const completedJobCount = await db
           .select({ count: sql<number>`count(*)` })
-          .from(projectTasks)
-          .innerJoin(productionTasks, eq(projectTasks.taskId, productionTasks.id))
+          .from(jobs)
           .where(
-            sql`${projectTasks.projectId} = ${project.id} AND ${productionTasks.status} = 'completed'`
+            sql`${jobs.projectId} = ${project.id} AND ${jobs.status} IN ('nesting-complete', 'machining-complete', 'assembly-complete', 'delivered')`
           );
 
         return {
@@ -92,22 +91,25 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Get all jobs/tasks for this project
-    const jobs = await db
+    // Get all jobs for this project
+    const projectJobs = await db
       .select({
-        id: productionTasks.id,
-        title: productionTasks.title,
-        description: productionTasks.description,
-        status: productionTasks.status,
-        priority: productionTasks.priority,
-        assignedToId: productionTasks.assignedToId,
-        createdAt: productionTasks.createdAt,
-        updatedAt: productionTasks.updatedAt,
+        id: jobs.id,
+        unit: jobs.unit,
+        type: jobs.type,
+        items: jobs.items,
+        nestingDate: jobs.nestingDate,
+        machiningDate: jobs.machiningDate,
+        assemblyDate: jobs.assemblyDate,
+        deliveryDate: jobs.deliveryDate,
+        status: jobs.status,
+        comments: jobs.comments,
+        createdAt: jobs.createdAt,
+        updatedAt: jobs.updatedAt,
       })
-      .from(projectTasks)
-      .innerJoin(productionTasks, eq(projectTasks.taskId, productionTasks.id))
-      .where(eq(projectTasks.projectId, projectId))
-      .orderBy(desc(productionTasks.createdAt));
+      .from(jobs)
+      .where(eq(jobs.projectId, projectId))
+      .orderBy(desc(jobs.createdAt));
 
     const projectWithDetails = {
       ...project[0],
@@ -118,11 +120,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
         email: project[0].clientEmail,
         phone: project[0].clientPhone,
       } : null,
-      jobs: jobs,
-      jobCount: jobs.length,
-      completedJobCount: jobs.filter(job => job.status === 'completed').length,
-      progress: jobs.length > 0 
-        ? Math.round((jobs.filter(job => job.status === 'completed').length / jobs.length) * 100)
+      jobs: projectJobs,
+      jobCount: projectJobs.length,
+      completedJobCount: projectJobs.filter(job => 
+        ['nesting-complete', 'machining-complete', 'assembly-complete', 'delivered'].includes(job.status || '')
+      ).length,
+      progress: projectJobs.length > 0 
+        ? Math.round((projectJobs.filter(job => 
+            ['nesting-complete', 'machining-complete', 'assembly-complete', 'delivered'].includes(job.status || '')
+          ).length / projectJobs.length) * 100)
         : 0
     };
 
@@ -206,6 +212,105 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting project:', error);
     res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
+// POST /api/projects/:id/jobs - Create a new job for a project
+router.post('/:id/jobs', authenticateToken, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const { unit, type, items, status, nestingDate, machiningDate, assemblyDate, deliveryDate, comments } = req.body;
+
+    if (!items) {
+      return res.status(400).json({ error: 'Items field is required' });
+    }
+
+    // Verify project exists
+    const project = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    if (project.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const newJob = await db
+      .insert(jobs)
+      .values({
+        projectId,
+        unit: unit || null,
+        type: type || null,
+        items,
+        status: status || 'not-assigned',
+        nestingDate: nestingDate || null,
+        machiningDate: machiningDate || null,
+        assemblyDate: assemblyDate || null,
+        deliveryDate: deliveryDate || null,
+        comments: comments || null,
+      })
+      .returning();
+
+    res.status(201).json(newJob[0]);
+  } catch (error) {
+    console.error('Error creating job:', error);
+    res.status(500).json({ error: 'Failed to create job' });
+  }
+});
+
+// POST /api/projects/:id/jobs/bulk - Create multiple jobs for a project
+router.post('/:id/jobs/bulk', authenticateToken, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const { jobs: jobsData } = req.body;
+
+    if (!Array.isArray(jobsData) || jobsData.length === 0) {
+      return res.status(400).json({ error: 'Jobs array is required and cannot be empty' });
+    }
+
+    // Verify project exists
+    const project = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    if (project.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Validate all jobs before inserting
+    for (const job of jobsData) {
+      if (!job.items) {
+        return res.status(400).json({ error: 'All jobs must have an items field' });
+      }
+    }
+
+    const newJobs = await db
+      .insert(jobs)
+      .values(jobsData.map((job: any) => ({
+        projectId,
+        unit: job.unit || null,
+        type: job.type || null,
+        items: job.items,
+        status: job.status || 'not-assigned',
+        nestingDate: job.nestingDate || null,
+        machiningDate: job.machiningDate || null,
+        assemblyDate: job.assemblyDate || null,
+        deliveryDate: job.deliveryDate || null,
+        comments: job.comments || null,
+      })))
+      .returning();
+
+    res.status(201).json({ 
+      message: `Successfully created ${newJobs.length} jobs`,
+      created: newJobs.length,
+      jobs: newJobs 
+    });
+  } catch (error) {
+    console.error('Error creating bulk jobs:', error);
+    res.status(500).json({ error: 'Failed to create jobs' });
   }
 });
 

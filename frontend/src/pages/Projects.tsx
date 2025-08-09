@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AddProjectModal from '../components/AddProjectModal';
 
 interface Project {
   id: number;
@@ -20,14 +21,6 @@ interface Project {
   isPinned?: boolean;
 }
 
-interface PinnedProject {
-  id: number;
-  projectId: number;
-  order: number;
-  createdAt: string;
-  project: Project;
-}
-
 interface ProjectsProps {
   onProjectSelect: (projectId: number) => void;
 }
@@ -35,7 +28,6 @@ interface ProjectsProps {
 const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [pinnedProjects, setPinnedProjects] = useState<PinnedProject[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +36,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'client' | 'status' | 'progress' | 'jobs'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -76,35 +69,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
     }
   };
 
-  // Fetch pinned projects from API
-  const fetchPinnedProjects = async () => {
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/api/pinned`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPinnedProjects(data);
-        
-        // Update projects to mark which ones are pinned
-        const pinnedProjectIds = data.map((p: PinnedProject) => p.projectId);
-        setProjects(prev => prev.map(project => ({
-          ...project,
-          isPinned: pinnedProjectIds.includes(project.id)
-        })));
-      }
-    } catch (err) {
-      console.error('Failed to fetch pinned projects:', err);
-    }
-  };
-
-  // Pin/Unpin a project
+      // Pin/Unpin a project (only updates project state for table display)
   const togglePinProject = async (projectId: number, isPinned: boolean) => {
     try {
       if (isPinned) {
@@ -118,7 +83,6 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         });
 
         if (response.ok) {
-          setPinnedProjects(prev => prev.filter(p => p.projectId !== projectId));
           setProjects(prev => prev.map(p => 
             p.id === projectId ? { ...p, isPinned: false } : p
           ));
@@ -135,7 +99,6 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         });
 
         if (response.ok) {
-          await fetchPinnedProjects(); // Refresh pinned projects
           setProjects(prev => prev.map(p => 
             p.id === projectId ? { ...p, isPinned: true } : p
           ));
@@ -143,31 +106,6 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       }
     } catch (err) {
       console.error('Failed to toggle pin status:', err);
-    }
-  };
-
-  // Update pinned projects order
-  const updatePinnedOrder = async (reorderedPinned: PinnedProject[]) => {
-    try {
-      const orderData = reorderedPinned.map((item, index) => ({
-        id: item.id,
-        order: index + 1,
-      }));
-
-      const response = await fetch(`${API_URL}/api/pinned/reorder`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ pinnedProjectsOrder: orderData }),
-      });
-
-      if (response.ok) {
-        setPinnedProjects(reorderedPinned);
-      }
-    } catch (err) {
-      console.error('Failed to update pinned order:', err);
     }
   };
 
@@ -188,6 +126,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
     // Apply status filter
     if (statusFilter !== 'All') {
       filtered = filtered.filter(project => project.status === statusFilter);
+    }
+
+    // Apply hide completed filter
+    if (hideCompleted) {
+      filtered = filtered.filter(project => project.status.toLowerCase() !== 'completed');
     }
 
     // Apply sorting
@@ -239,46 +182,15 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
     }
   };
 
-  // Reset filters
-  const resetFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('All');
-    setSortField('name');
-    setSortDirection('asc');
-  };
-
-  // Delete project
-  const deleteProject = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/projects/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        await fetchProjects();
-      } else {
-        throw new Error('Failed to delete project');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete project');
-    }
-  };
-
   useEffect(() => {
     if (token) {
       fetchProjects();
-      fetchPinnedProjects();
     }
   }, [token]);
 
   useEffect(() => {
     applyFiltersAndSort();
-  }, [projects, searchTerm, statusFilter, sortField, sortDirection]);
+  }, [projects, searchTerm, statusFilter, hideCompleted, sortField, sortDirection]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -397,14 +309,27 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               </select>
             </div>
 
-            {/* Reset */}
+            {/* Hide Completed Toggle */}
             <div className="flex items-end">
-              <button
-                onClick={resetFilters}
-                className="w-full px-3 py-2 text-charcoal bg-light-grey rounded-md hover:bg-opacity-80 transition-colors"
-              >
-                Reset Filters
-              </button>
+              <div className="w-full">
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={hideCompleted}
+                      onChange={(e) => setHideCompleted(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`block w-14 h-8 rounded-full transition-colors ${
+                      hideCompleted ? 'bg-primary' : 'bg-light-grey'
+                    }`}></div>
+                    <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                      hideCompleted ? 'transform translate-x-6' : ''
+                    }`}></div>
+                  </div>
+                  <span className="ml-3 text-sm text-charcoal">Hide Completed</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -413,68 +338,6 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
           </div>
         </div>
       </div>
-
-      {/* Pinned Projects */}
-      {pinnedProjects.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-light-grey overflow-hidden">
-          <div className="px-6 py-4 border-b border-light-grey">
-            <h3 className="text-lg font-medium text-black flex items-center">
-              📌 Pinned Projects
-            </h3>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pinnedProjects.map((pinnedProject, index) => (
-                <div
-                  key={pinnedProject.id}
-                  className="border border-light-grey rounded-lg p-4 hover:bg-light-grey cursor-pointer transition-colors"
-                  onClick={() => onProjectSelect(pinnedProject.projectId)}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', index.toString());
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                    const dropIndex = index;
-                    
-                    if (dragIndex !== dropIndex) {
-                      const reordered = [...pinnedProjects];
-                      const [removed] = reordered.splice(dragIndex, 1);
-                      reordered.splice(dropIndex, 0, removed);
-                      updatePinnedOrder(reordered);
-                    }
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-black truncate">{pinnedProject.project.name}</h4>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePinProject(pinnedProject.projectId, true);
-                      }}
-                      className="text-yellow-500 hover:text-charcoal text-sm"
-                      title="Unpin project"
-                    >
-                      📌
-                    </button>
-                  </div>
-                  {pinnedProject.project.client && (
-                    <p className="text-sm text-charcoal mb-2">{pinnedProject.project.client.name}</p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(pinnedProject.project.status)}`}>
-                      {pinnedProject.project.status}
-                    </span>
-                    <span className="text-xs text-charcoal">{pinnedProject.project.progress}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Projects Table */}
       <div className="bg-white rounded-lg shadow-sm border border-light-grey overflow-hidden">
@@ -542,23 +405,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 onClick={() => onProjectSelect(project.id)}
               >
                 <td className="px-6 py-4">
-                  <div>
-                    <div className="text-sm font-medium text-black">{project.name}</div>
-                    {project.description && (
-                      <div className="text-sm text-charcoal truncate max-w-xs">
-                        {project.description}
-                      </div>
-                    )}
-                  </div>
+                  <div className="text-sm font-medium text-black">{project.name}</div>
                 </td>
                 <td className="px-6 py-4">
                   {project.client ? (
-                    <div>
-                      <div className="text-sm text-black">{project.client.name}</div>
-                      {project.client.company && (
-                        <div className="text-sm text-charcoal">{project.client.company}</div>
-                      )}
-                    </div>
+                    <div className="text-sm text-black">{project.client.name}</div>
                   ) : (
                     <div className="text-sm text-charcoal">No client assigned</div>
                   )}
@@ -590,30 +441,27 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                       e.stopPropagation();
                       togglePinProject(project.id, project.isPinned || false);
                     }}
-                    className={`text-lg ${project.isPinned ? 'text-yellow-500' : 'text-charcoal'} hover:text-yellow-600 transition-colors`}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      project.isPinned 
+                        ? 'border-primary bg-primary' 
+                        : 'border-charcoal hover:border-primary'
+                    }`}
                     title={project.isPinned ? 'Unpin project' : 'Pin project'}
                   >
-                    📌
+                    {project.isPinned && (
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    )}
                   </button>
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   <button 
-                    className="text-primary hover:opacity-80 mr-3"
+                    className="text-primary hover:opacity-80"
                     onClick={(e) => {
                       e.stopPropagation();
                       // Edit functionality - to be implemented
                     }}
                   >
                     Edit
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProject(project.id);
-                    }}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
                   </button>
                 </td>
               </tr>
@@ -628,21 +476,12 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         )}
       </div>
 
-      {/* Add Project Modal - Placeholder */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-black">Add New Project</h2>
-            <p className="text-charcoal mb-4">Project creation form coming soon...</p>
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="w-full px-4 py-2 bg-charcoal text-white rounded-md hover:opacity-80 transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Add Project Modal */}
+      <AddProjectModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onProjectAdded={fetchProjects}
+      />
     </div>
   );
 };

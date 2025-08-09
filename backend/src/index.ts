@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
-import taskRoutes from './routes/tasks.js';
 import projectRoutes from './routes/projects.js';
 import clientRoutes from './routes/clients.js';
 import jobRoutes from './routes/jobs.js';
@@ -48,7 +47,6 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/tasks', taskRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/jobs', jobRoutes);
