@@ -48,20 +48,42 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
     
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/projects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const [projectsResponse, pinnedResponse] = await Promise.all([
+        fetch(`${API_URL}/api/projects`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(`${API_URL}/api/pinned`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
 
-      if (!response.ok) {
+      if (!projectsResponse.ok) {
         throw new Error('Failed to fetch projects');
       }
 
-      const data = await response.json();
-      setProjects(data);
-      setFilteredProjects(data);
+      const projectsData = await projectsResponse.json();
+      
+      // Get pinned project IDs
+      let pinnedProjectIds: number[] = [];
+      if (pinnedResponse.ok) {
+        const pinnedData = await pinnedResponse.json();
+        pinnedProjectIds = pinnedData.map((p: any) => p.projectId);
+      }
+
+      // Add isPinned property to each project
+      const projectsWithPinStatus = projectsData.map((project: Project) => ({
+        ...project,
+        isPinned: pinnedProjectIds.includes(project.id)
+      }));
+
+      setProjects(projectsWithPinStatus);
+      setFilteredProjects(projectsWithPinStatus);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch projects');
     } finally {
