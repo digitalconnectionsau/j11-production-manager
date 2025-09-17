@@ -243,7 +243,7 @@ router.post('/:id/jobs', authenticateToken, async (req, res) => {
         unit: unit || null,
         type: type || null,
         items,
-        status: status || 'not-assigned',
+        statusId: status || 1, // Convert status to statusId, default to 1
         nestingDate: nestingDate || null,
         machiningDate: machiningDate || null,
         assemblyDate: assemblyDate || null,
@@ -294,7 +294,7 @@ router.post('/:id/jobs/bulk', authenticateToken, async (req, res) => {
         unit: job.unit || null,
         type: job.type || null,
         items: job.items,
-        status: job.status || 'not-assigned',
+        statusId: job.status || 1,
         nestingDate: job.nestingDate || null,
         machiningDate: job.machiningDate || null,
         assemblyDate: job.assemblyDate || null,

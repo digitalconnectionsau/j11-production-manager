@@ -238,10 +238,11 @@ router.post('/forgot-password', async (req, res) => {
 
     // Send password reset email
     const userName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || 'User';
-    const emailSent = await sendPasswordResetEmail(email, resetToken, userName);
-
-    if (!emailSent) {
-      console.error('Failed to send password reset email to:', email);
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+      console.log(`Password reset email sent to ${email} for user: ${userName}`);
+    } catch (error) {
+      console.error('Failed to send password reset email to:', email, error);
       return res.status(500).json({ 
         error: 'Failed to send reset email. Please try again later.' 
       });

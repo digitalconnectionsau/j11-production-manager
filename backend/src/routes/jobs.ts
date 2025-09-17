@@ -110,7 +110,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         machiningDate,
         assemblyDate,
         deliveryDate,
-        status,
+        statusId: status || 1, // Convert status to statusId, default to 1
         comments,
         createdAt: new Date(),
         updatedAt: new Date(),
