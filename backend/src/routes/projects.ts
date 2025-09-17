@@ -1,7 +1,7 @@
 import express from 'express';
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { projects, clients, jobs } from '../db/schema.js';
+import { projects, clients, jobs, jobStatuses } from '../db/schema.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -236,6 +236,25 @@ router.post('/:id/jobs', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    // Convert status string to statusId if provided
+    let statusId = 1; // Default to first status
+    if (status) {
+      if (typeof status === 'number') {
+        statusId = status;
+      } else {
+        // Look up status by name
+        const statusRecord = await db
+          .select({ id: jobStatuses.id })
+          .from(jobStatuses)
+          .where(eq(jobStatuses.name, status))
+          .limit(1);
+        
+        if (statusRecord.length > 0) {
+          statusId = statusRecord[0].id;
+        }
+      }
+    }
+
     const newJob = await db
       .insert(jobs)
       .values({
@@ -243,7 +262,7 @@ router.post('/:id/jobs', authenticateToken, async (req, res) => {
         unit: unit || null,
         type: type || null,
         items,
-        statusId: status || 1, // Convert status to statusId, default to 1
+        statusId,
         nestingDate: nestingDate || null,
         machiningDate: machiningDate || null,
         assemblyDate: assemblyDate || null,
