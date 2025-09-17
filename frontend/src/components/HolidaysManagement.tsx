@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Icon from './Icon';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface Holiday {
   id: number;
   name: string;
@@ -41,8 +43,8 @@ const HolidaysManagement: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/holidays?year=${selectedYear}`, {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/api/holidays/year/${selectedYear}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,8 +70,8 @@ const HolidaysManagement: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/holidays', {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/api/holidays`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,8 +97,8 @@ const HolidaysManagement: React.FC = () => {
     if (!editingHoliday) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/holidays/${editingHoliday.id}`, {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/api/holidays/${editingHoliday.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,8 +130,8 @@ const HolidaysManagement: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/holidays/${id}`, {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/api/holidays/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

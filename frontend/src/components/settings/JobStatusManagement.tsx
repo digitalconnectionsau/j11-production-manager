@@ -39,6 +39,23 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
     '#ec4899', '#f43f5e'
   ];
 
+  // Generate lighter background colors (proper 7-character hex codes)
+  const generateLightColor = (hexColor: string): string => {
+    const hex = hexColor.slice(1); // Remove #
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    
+    // Make lighter by mixing with white (255, 255, 255)
+    const lightR = Math.round(r + (255 - r) * 0.8);
+    const lightG = Math.round(g + (255 - g) * 0.8);
+    const lightB = Math.round(b + (255 - b) * 0.8);
+    
+    return `#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`;
+  };
+
+  const backgroundColors = colors.map(generateLightColor);
+
   useEffect(() => {
     fetchStatuses();
   }, []);
@@ -253,21 +270,17 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                 Background Color
               </label>
               <div className="flex gap-2 flex-wrap">
-                {colors.map((color) => {
-                  // Generate lighter background colors
-                  const bgColor = color + '20'; // Add transparency
-                  return (
-                    <button
-                      key={`bg-${color}`}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, backgroundColor: bgColor })}
-                      className={`w-8 h-8 rounded-md border-2 ${
-                        formData.backgroundColor === bgColor ? 'border-black' : 'border-gray-300'
-                      }`}
-                      style={{ backgroundColor: bgColor }}
-                    />
-                  );
-                })}
+                {backgroundColors.map((bgColor) => (
+                  <button
+                    key={`bg-${bgColor}`}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, backgroundColor: bgColor })}
+                    className={`w-8 h-8 rounded-md border-2 ${
+                      formData.backgroundColor === bgColor ? 'border-black' : 'border-gray-300'
+                    }`}
+                    style={{ backgroundColor: bgColor }}
+                  />
+                ))}
               </div>
             </div>
           </div>

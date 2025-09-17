@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// import JobStatusManagement from '../components/settings/JobStatusManagement';
+import JobStatusManagement from '../components/settings/JobStatusManagement';
 import HolidaysManagement from '../components/HolidaysManagement';
 
 interface AppSettings {
@@ -102,10 +102,7 @@ const Settings: React.FC = () => {
       {/* Job Status Tab */}
       {activeTab === 'job-status' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-8">
-            <p className="text-gray-600">Job Status management is temporarily disabled due to a syntax issue.</p>
-            <p className="text-gray-500 text-sm mt-2">Please check the console for more details.</p>
-          </div>
+          <JobStatusManagement />
         </div>
       )}
 
