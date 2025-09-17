@@ -18,6 +18,7 @@ const AppContent: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [selectedProjectTab, setSelectedProjectTab] = useState<'jobs' | 'info'>('jobs');
   const [resetToken, setResetToken] = useState<string | null>(null);
 
   // Check for reset password token in URL
@@ -65,8 +66,9 @@ const AppContent: React.FC = () => {
     setSelectedClientId(null);
   };
 
-  const handleProjectSelect = (projectId: number) => {
+  const handleProjectSelect = (projectId: number, tab: 'jobs' | 'info' = 'jobs') => {
     setSelectedProjectId(projectId);
+    setSelectedProjectTab(tab);
   };
 
   const handleBackToProjects = () => {
@@ -96,7 +98,12 @@ const AppContent: React.FC = () => {
           return <JobDetails jobId={selectedJobId} projectId={selectedProjectId} onBack={handleBackToProject} />;
         }
         if (selectedProjectId) {
-          return <ProjectDetails projectId={selectedProjectId} onBack={handleBackToProjects} onJobSelect={handleJobSelect} />;
+          return <ProjectDetails 
+            projectId={selectedProjectId} 
+            onBack={handleBackToProjects} 
+            onJobSelect={handleJobSelect} 
+            initialTab={selectedProjectTab}
+          />;
         }
         return <Projects onProjectSelect={handleProjectSelect} />;
       case 'Reports':
@@ -118,6 +125,7 @@ const AppContent: React.FC = () => {
   const handleSidebarProjectSelect = (projectId: number) => {
     setCurrentPage('Projects');
     setSelectedProjectId(projectId);
+    setSelectedProjectTab('jobs');
     setSelectedClientId(null);
     setSelectedJobId(null);
   };

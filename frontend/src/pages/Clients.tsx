@@ -441,7 +441,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     <button 
-                      className="text-primary hover:opacity-80"
+                      className="text-blue-600 hover:text-blue-800 hover:underline font-medium px-2 py-1 rounded transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         // Edit functionality - to be implemented

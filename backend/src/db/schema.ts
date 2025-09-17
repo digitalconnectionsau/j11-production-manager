@@ -110,6 +110,18 @@ export const holidays = pgTable('holidays', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// Lead times table for managing working days between job statuses
+export const leadTimes = pgTable('lead_times', {
+  id: serial('id').primaryKey(),
+  fromStatusId: integer('from_status_id').notNull().references(() => jobStatuses.id, { onDelete: 'cascade' }),
+  toStatusId: integer('to_status_id').notNull().references(() => jobStatuses.id, { onDelete: 'cascade' }),
+  days: integer('days').notNull().default(0),
+  direction: varchar('direction', { length: 10 }).notNull().default('before'), // 'before' or 'after'
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -127,3 +139,5 @@ export type Holiday = typeof holidays.$inferSelect;
 export type NewHoliday = typeof holidays.$inferInsert;
 export type JobStatus = typeof jobStatuses.$inferSelect;
 export type NewJobStatus = typeof jobStatuses.$inferInsert;
+export type LeadTime = typeof leadTimes.$inferSelect;
+export type NewLeadTime = typeof leadTimes.$inferInsert;

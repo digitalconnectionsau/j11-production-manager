@@ -346,7 +346,7 @@ const DetailsTab: React.FC<{ client: Client; onAddContact: () => void }> = ({ cl
                 )}
               </div>
             </div>
-            <button className="text-primary hover:opacity-80 text-sm">Edit</button>
+            <button className="text-blue-600 hover:text-blue-800 hover:underline font-medium px-2 py-1 rounded transition-colors text-sm">Edit</button>
           </div>
         </div>
       )}

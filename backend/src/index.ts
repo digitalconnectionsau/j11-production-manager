@@ -12,6 +12,7 @@ import jobRoutes from './routes/jobs.js';
 import jobStatusRoutes from './routes/jobStatuses.js';
 import holidaysRoutes from './routes/holidays.js';
 import pinnedRoutes from './routes/pinned.js';
+import leadTimesRoutes from './routes/leadTimes.js';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +56,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/job-statuses', jobStatusRoutes);
 app.use('/api/holidays', holidaysRoutes);
 app.use('/api/pinned', pinnedRoutes);
+app.use('/api/lead-times', leadTimesRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

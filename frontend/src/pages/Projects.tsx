@@ -22,7 +22,7 @@ interface Project {
 }
 
 interface ProjectsProps {
-  onProjectSelect: (projectId: number) => void;
+  onProjectSelect: (projectId: number, tab?: 'jobs' | 'info') => void;
 }
 
 const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
@@ -402,7 +402,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
               <tr 
                 key={project.id} 
                 className="hover:bg-light-grey cursor-pointer"
-                onClick={() => onProjectSelect(project.id)}
+                onClick={() => onProjectSelect(project.id, 'jobs')}
               >
                 <td className="px-6 py-4">
                   <div className="text-sm font-medium text-black">{project.name}</div>
@@ -443,8 +443,8 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                     }}
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                       project.isPinned 
-                        ? 'border-primary bg-primary' 
-                        : 'border-charcoal hover:border-primary'
+                        ? 'border-orange-500 bg-orange-500' 
+                        : 'border-charcoal hover:border-orange-500'
                     }`}
                     title={project.isPinned ? 'Unpin project' : 'Pin project'}
                   >
@@ -455,10 +455,10 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
                 </td>
                 <td className="px-6 py-4 text-sm font-medium">
                   <button 
-                    className="text-primary hover:opacity-80"
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium px-2 py-1 rounded transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Edit functionality - to be implemented
+                      onProjectSelect(project.id, 'info');
                     }}
                   >
                     Edit

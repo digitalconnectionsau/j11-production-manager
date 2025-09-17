@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AddJobModal from '../components/AddJobModal';
 
 interface Job {
   id: number;
@@ -43,15 +44,18 @@ interface ProjectDetailsProps {
   projectId: number;
   onBack: () => void;
   onJobSelect?: (jobId: number) => void;
+  initialTab?: 'jobs' | 'info';
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJobSelect }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJobSelect, initialTab = 'jobs' }) => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Project | null>(null);
   const [isPinning, setIsPinning] = useState(false);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'jobs' | 'info'>(initialTab);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -362,114 +366,148 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         </div>
       </div>
 
-      {/* Project Details */}
-      {isEditing && editForm ? (
-        <form onSubmit={updateProject} className="space-y-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Edit Project Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editForm.name}
-                  onChange={handleEditChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 mb-8">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('jobs')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'jobs'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Jobs ({project.jobCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('info')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'info'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Project Information
+          </button>
+        </nav>
+      </div>
+
+      {/* Project Information Tab */}
+      {activeTab === 'info' && (
+        <>
+          {/* Project Details */}
+          {isEditing && editForm ? (
+            <form onSubmit={updateProject} className="space-y-6 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold mb-4">Edit Project Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Project Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editForm.name}
+                      onChange={handleEditChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      value={editForm.status}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="on-hold">On Hold</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={editForm.description || ''}
+                    onChange={handleEditChange}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={editForm.status}
-                  onChange={handleEditChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+            </form>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+              <h3 className="text-lg font-semibold mb-4">Project Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Created</h4>
+                  <p className="text-sm text-gray-900">
+                    {new Date(project.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Last Updated</h4>
+                  <p className="text-sm text-gray-900">
+                    {new Date(project.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={editForm.description || ''}
-                onChange={handleEditChange}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </form>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h3 className="text-lg font-semibold mb-4">Project Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Created</h4>
-              <p className="text-sm text-gray-900">
-                {new Date(project.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">Last Updated</h4>
-              <p className="text-sm text-gray-900">
-                {new Date(project.updatedAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          {project.description && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-500 mb-2">Description</h4>
-              <p className="text-sm text-gray-900 whitespace-pre-line">{project.description}</p>
+              {project.description && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Description</h4>
+                  <p className="text-sm text-gray-900 whitespace-pre-line">{project.description}</p>
+                </div>
+              )}
+              {project.client && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Client Information</h4>
+                  <div className="space-y-1">
+                    {project.client.email && (
+                      <div>
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <a href={`mailto:${project.client.email}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
+                          {project.client.email}
+                        </a>
+                      </div>
+                    )}
+                    {project.client.phone && (
+                      <div>
+                        <span className="text-sm text-gray-600">Phone:</span>
+                        <a href={`tel:${project.client.phone}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
+                          {project.client.phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          {project.client && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-500 mb-2">Client Information</h4>
-              <div className="space-y-1">
-                {project.client.email && (
-                  <div>
-                    <span className="text-sm text-gray-600">Email:</span>
-                    <a href={`mailto:${project.client.email}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
-                      {project.client.email}
-                    </a>
-                  </div>
-                )}
-                {project.client.phone && (
-                  <div>
-                    <span className="text-sm text-gray-600">Phone:</span>
-                    <a href={`tel:${project.client.phone}`} className="text-sm text-blue-600 hover:text-blue-800 ml-2">
-                      {project.client.phone}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
-      {/* Jobs/Tasks List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Jobs Tab */}
+      {activeTab === 'jobs' && (
+        <>
+          {/* Jobs/Tasks List */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Jobs ({project.jobCount})</h3>
             <div className="flex space-x-3">
               <button
                 className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                onClick={() => {/* TODO: Add job modal */}}
+                onClick={() => setShowAddJobModal(true)}
               >
                 <span>➕</span>
                 <span>Add Job</span>
@@ -579,6 +617,21 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {/* Add Job Modal */}
+      {project && (
+        <AddJobModal
+          isOpen={showAddJobModal}
+          onClose={() => setShowAddJobModal(false)}
+          onJobAdded={() => {
+            setShowAddJobModal(false);
+            fetchProject(); // Refresh project data to show new job
+          }}
+          projectId={project.id}
+        />
+      )}
     </div>
   );
 };
