@@ -37,7 +37,8 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setError(null);
       
       const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/user-column-preferences/${tableName}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await axios.get(`${API_URL}/api/user-column-preferences/${tableName}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -55,7 +56,8 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setError(null);
       
       const token = localStorage.getItem('token');
-      await axios.put(`/api/user-column-preferences/${tableName}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await axios.put(`${API_URL}/api/user-column-preferences/${tableName}`, {
         preferences: newPreferences
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -74,7 +76,8 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setError(null);
       
       const token = localStorage.getItem('token');
-      await axios.patch(`/api/user-column-preferences/${tableName}/${columnName}`, updates, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await axios.patch(`${API_URL}/api/user-column-preferences/${tableName}/${columnName}`, updates, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -108,7 +111,8 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setError(null);
       
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/user-column-preferences/${tableName}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await axios.delete(`${API_URL}/api/user-column-preferences/${tableName}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -132,7 +136,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
   };
 
   const getColumnOrder = (): string[] => {
-    if (preferences.length === 0) {
+    if (!Array.isArray(preferences) || preferences.length === 0) {
       // Return empty array to let the component use its default order
       return [];
     }
