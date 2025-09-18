@@ -464,15 +464,6 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
                   </div>
                 </th>
                 <th 
-                  onClick={() => handleSort('clientName')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Client</span>
-                    <SortIcon field="clientName" />
-                  </div>
-                </th>
-                <th 
                   onClick={() => handleSort('projectName')}
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 >
@@ -542,9 +533,6 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {job.items}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.clientName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
                     <button onClick={() => onProjectSelect?.(job.projectId)}>

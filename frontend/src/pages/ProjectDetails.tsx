@@ -41,6 +41,18 @@ interface Project {
   isPinned?: boolean;
 }
 
+interface JobStatus {
+  id: number;
+  name: string;
+  displayName: string;
+  color: string;
+  backgroundColor: string;
+  orderIndex: number;
+  isDefault: boolean;
+  isFinal: boolean;
+  targetColumns?: string[];
+}
+
 interface ProjectDetailsProps {
   projectId: number;
   onBack: () => void;
@@ -58,6 +70,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'jobs' | 'info'>(initialTab);
+  const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -223,19 +236,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     }
   };
 
-  const getJobStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'in-progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-light-grey text-charcoal';
-    }
-  };
-
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return 'bg-green-500';
     if (progress >= 50) return 'bg-yellow-500';
@@ -248,6 +248,78 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       fetchProject();
     }
   }, [projectId, token]);
+
+  // Fetch job statuses for status cycling
+  useEffect(() => {
+    if (token) {
+      fetchJobStatuses();
+    }
+  }, [token]);
+
+  const fetchJobStatuses = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/job-statuses`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const statuses = await response.json();
+        setJobStatuses(statuses.sort((a: JobStatus, b: JobStatus) => a.orderIndex - b.orderIndex));
+      }
+    } catch (err) {
+      console.error('Failed to fetch job statuses:', err);
+    }
+  };
+
+  const cycleJobStatus = async (jobId: number, currentStatus: string) => {
+    if (jobStatuses.length === 0) return;
+    
+    // Find current status index
+    const currentIndex = jobStatuses.findIndex(status => status.name === currentStatus);
+    
+    // Get next status (cycle back to first if at end)
+    const nextIndex = (currentIndex + 1) % jobStatuses.length;
+    const nextStatus = jobStatuses[nextIndex];
+    
+    try {
+      const response = await fetch(`${API_URL}/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: nextStatus.name,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh project data to update the status display
+        await fetchProject();
+      } else {
+        throw new Error('Failed to update job status');
+      }
+    } catch (err) {
+      console.error('Failed to update job status:', err);
+      setError('Failed to update job status');
+    }
+  };
+
+  const getJobStatusStyle = (status: string) => {
+    const jobStatus = jobStatuses.find(s => s.name === status);
+    if (!jobStatus) {
+      return { color: '#000', backgroundColor: '#f3f4f6' };
+    }
+    return {
+      color: jobStatus.color,
+      backgroundColor: jobStatus.backgroundColor,
+    };
+  };
 
   if (loading) {
     return (
@@ -617,9 +689,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getJobStatusColor(job.status)}`}>
-                        {job.status.replace('-', ' ')}
-                      </span>
+                      <button
+                        onClick={() => cycleJobStatus(job.id, job.status)}
+                        className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                        style={getJobStatusStyle(job.status)}
+                      >
+                        {jobStatuses.find(s => s.name === job.status)?.displayName || job.status.replace('-', ' ')}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-500 max-w-xs truncate">
