@@ -12,6 +12,7 @@ export interface JobStatus {
   orderIndex: number;
   isDefault: boolean;
   isFinal: boolean;
+  targetColumns?: string[];
 }
 
 interface JobStatusManagementProps {
@@ -24,37 +25,39 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
   const [isAddMode, setIsAddMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [colorHistory, setColorHistory] = useState<string[]>([]);
+  const [customColor, setCustomColor] = useState('#1976d2');
   const [formData, setFormData] = useState({
-    name: '',
     displayName: '',
-    color: '#1976d2',
-    backgroundColor: '#e3f2fd',
+    color: '#ffffff', // Default to white text
+    backgroundColor: '#1976d2', // Default background
+    targetColumns: [] as string[], // Column targeting
   });
 
   const { token } = useAuth();
 
-  const colors = [
-    '#1976d2', '#ef4444', '#f97316', '#eab308',
-    '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6',
-    '#ec4899', '#f43f5e'
-  ];
-
-  // Generate lighter background colors (proper 7-character hex codes)
-  const generateLightColor = (hexColor: string): string => {
-    const hex = hexColor.slice(1); // Remove #
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    
-    // Make lighter by mixing with white (255, 255, 255)
-    const lightR = Math.round(r + (255 - r) * 0.8);
-    const lightG = Math.round(g + (255 - g) * 0.8);
-    const lightB = Math.round(b + (255 - b) * 0.8);
-    
-    return `#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`;
+  // Helper function to generate internal name from display name
+  const generateInternalName = (displayName: string): string => {
+    return displayName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .trim();
   };
 
-  const backgroundColors = colors.map(generateLightColor);
+  // Load color history from existing statuses
+  const loadColorHistory = (statusList: JobStatus[]) => {
+    const colors = statusList.map(status => status.backgroundColor);
+    const uniqueColors = [...new Set(colors)];
+    setColorHistory(uniqueColors);
+  };
+
+  // Common background colors for quick selection
+  const commonColors = [
+    '#1976d2', '#dc2626', '#ea580c', '#d97706', '#65a30d',
+    '#059669', '#0891b2', '#7c3aed', '#c2410c', '#be185d'
+  ];
 
   useEffect(() => {
     fetchStatuses();
@@ -64,14 +67,13 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/api/job-statuses`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!response.ok) throw new Error('Failed to fetch statuses');
-      const data = await response.json();
-      setStatuses(data);
+      
+      const statusList = await response.json();
+      setStatuses(statusList);
+      loadColorHistory(statusList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch statuses');
     } finally {
@@ -81,22 +83,25 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
 
   const handleAddStatus = () => {
     setIsAddMode(true);
-    setFormData({ name: '', displayName: '', color: '#1976d2', backgroundColor: '#e3f2fd' });
+    setFormData({ displayName: '', color: '#ffffff', backgroundColor: '#1976d2', targetColumns: [] });
+    setCustomColor('#1976d2');
   };
 
   const handleEditStatus = (status: JobStatus) => {
     setEditingStatus(status);
     setFormData({ 
-      name: status.name, 
       displayName: status.displayName, 
       color: status.color, 
-      backgroundColor: status.backgroundColor 
+      backgroundColor: status.backgroundColor,
+      targetColumns: status.targetColumns || []
     });
+    setCustomColor(status.backgroundColor);
   };
 
   const handleSaveStatus = async () => {
     try {
       setLoading(true);
+      const internalName = generateInternalName(formData.displayName);
       const url = isAddMode ? `${API_URL}/api/job-statuses` : `${API_URL}/api/job-statuses/${editingStatus?.id}`;
       const method = isAddMode ? 'POST' : 'PUT';
       
@@ -106,7 +111,13 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: internalName,
+          displayName: formData.displayName,
+          color: formData.color,
+          backgroundColor: formData.backgroundColor,
+          targetColumns: formData.targetColumns,
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to save status');
@@ -146,7 +157,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
   const handleCancelEdit = () => {
     setIsAddMode(false);
     setEditingStatus(null);
-    setFormData({ name: '', displayName: '', color: '#1976d2', backgroundColor: '#e3f2fd' });
+    setFormData({ displayName: '', color: '#ffffff', backgroundColor: '#1976d2', targetColumns: [] });
   };
 
   const moveStatus = async (fromIndex: number, toIndex: number) => {
@@ -183,6 +194,17 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
     }
   };
 
+  const handleColorChange = (color: string) => {
+    setFormData({ ...formData, backgroundColor: color });
+    setCustomColor(color);
+  };
+
+  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    setCustomColor(color);
+    setFormData({ ...formData, backgroundColor: color });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -216,78 +238,204 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
 
       {/* Add/Edit Form */}
       {(isAddMode || editingStatus) && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+        <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200">
           <h3 className="text-lg font-medium text-black mb-4">
             {isAddMode ? 'Add New Status' : 'Edit Status'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Status Name */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-black mb-2">
+              Status Name
+            </label>
+            <input
+              type="text"
+              value={formData.displayName}
+              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+              disabled={loading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., In Progress"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Internal name will be auto-generated: {formData.displayName ? generateInternalName(formData.displayName) : 'in-progress'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Background Color Selection */}
             <div>
-              <label className="block text-sm font-medium text-black mb-2">
-                Status Name (internal)
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., in-progress"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">
-                Display Name
-              </label>
-              <input
-                type="text"
-                value={formData.displayName}
-                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., In Progress"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">
-                Text Color
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={`w-8 h-8 rounded-md border-2 ${
-                      formData.color === color ? 'border-black' : 'border-gray-300'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">
+              <label className="block text-sm font-medium text-black mb-3">
                 Background Color
               </label>
-              <div className="flex gap-2 flex-wrap">
-                {backgroundColors.map((bgColor) => (
-                  <button
-                    key={`bg-${bgColor}`}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, backgroundColor: bgColor })}
-                    className={`w-8 h-8 rounded-md border-2 ${
-                      formData.backgroundColor === bgColor ? 'border-black' : 'border-gray-300'
-                    }`}
-                    style={{ backgroundColor: bgColor }}
+              
+              {/* Custom Color Input */}
+              <div className="mb-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={customColor}
+                    onChange={handleCustomColorChange}
+                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
                   />
-                ))}
+                  <input
+                    type="text"
+                    value={customColor}
+                    onChange={(e) => handleCustomColorChange(e)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="#1976d2"
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                  />
+                </div>
+              </div>
+
+              {/* Common Colors */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-600 mb-2">Common Colors:</p>
+                <div className="flex gap-2 flex-wrap">
+                  {commonColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => handleColorChange(color)}
+                      className={`w-8 h-8 rounded-md border-2 transition-all ${
+                        formData.backgroundColor === color ? 'border-black scale-110' : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Previously Used Colors */}
+              {colorHistory.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-600 mb-2">Previously Used:</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {colorHistory.map((color) => (
+                      <button
+                        key={`history-${color}`}
+                        type="button"
+                        onClick={() => handleColorChange(color)}
+                        className={`w-8 h-8 rounded-md border-2 transition-all ${
+                          formData.backgroundColor === color ? 'border-black scale-110' : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Text Color Selection */}
+            <div>
+              <label className="block text-sm font-medium text-black mb-3">
+                Text Color
+              </label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, color: '#ffffff' })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                    formData.color === '#ffffff' 
+                      ? 'border-black bg-gray-100' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="w-6 h-6 bg-white border border-gray-300 rounded"></div>
+                  <span>White</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, color: '#000000' })}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                    formData.color === '#000000' 
+                      ? 'border-black bg-gray-100' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="w-6 h-6 bg-black rounded"></div>
+                  <span>Black</span>
+                </button>
               </div>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
+
+          {/* Column Targeting */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-black mb-3">
+              Target Columns
+            </label>
+            <p className="text-sm text-gray-600 mb-4">
+              Select which columns in the Jobs table should be colored when this status is active.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { value: 'nesting', label: 'Nesting' },
+                { value: 'machining', label: 'Machining' },
+                { value: 'assembly', label: 'Assembly' },
+                { value: 'delivery', label: 'Delivery' }
+              ].map((column) => {
+                const isChecked = formData.targetColumns.includes(column.value);
+                return (
+                  <label
+                    key={column.value}
+                    className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      isChecked 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            targetColumns: [...formData.targetColumns, column.value]
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            targetColumns: formData.targetColumns.filter(col => col !== column.value)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium">{column.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-black mb-2">
+              Preview
+            </label>
+            <div className="inline-block">
+              <span
+                className="px-4 py-2 rounded-full text-sm font-medium"
+                style={{ 
+                  color: formData.color,
+                  backgroundColor: formData.backgroundColor 
+                }}
+              >
+                {formData.displayName || 'Status Name'}
+              </span>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex gap-2 mt-6">
             <button
               onClick={handleSaveStatus}
-              disabled={loading || !formData.name.trim() || !formData.displayName.trim()}
+              disabled={loading || !formData.displayName.trim()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save'}
@@ -341,8 +489,13 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                 )}
               </div>
 
-              {/* Order */}
-              <span className="text-sm text-gray-500">Order: {status.orderIndex}</span>
+              {/* Internal Name & Order */}
+              <div className="text-sm text-gray-500">
+                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded mr-2">
+                  {status.name}
+                </span>
+                Order: {status.orderIndex}
+              </div>
             </div>
 
             {/* Actions */}

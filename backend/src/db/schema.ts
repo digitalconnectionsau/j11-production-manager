@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, varchar, text, timestamp, boolean, pgEnum, date } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, timestamp, boolean, pgEnum, date, jsonb } from 'drizzle-orm/pg-core';
 
 // Job statuses table for flexible status management
 export const jobStatuses = pgTable('job_statuses', {
@@ -10,6 +10,7 @@ export const jobStatuses = pgTable('job_statuses', {
   orderIndex: integer('order_index').notNull().default(0),
   isDefault: boolean('is_default').default(false),
   isFinal: boolean('is_final').default(false), // Completion status
+  targetColumns: jsonb('target_columns').default('[]'), // Array of column names to target for coloring
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

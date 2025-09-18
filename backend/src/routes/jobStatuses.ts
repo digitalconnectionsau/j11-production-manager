@@ -24,11 +24,22 @@ router.get('/', authenticateToken, async (req, res) => {
 // Create new job status
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { name, displayName, color, backgroundColor, orderIndex, isDefault, isFinal } = req.body;
+    const { name, displayName, color, backgroundColor, orderIndex, isDefault, isFinal, targetColumns } = req.body;
 
     // Validate required fields
     if (!name || !displayName || !color || !backgroundColor) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate targetColumns if provided
+    const validColumns = ['nesting', 'machining', 'assembly', 'delivery'];
+    if (targetColumns && Array.isArray(targetColumns)) {
+      const invalidColumns = targetColumns.filter(col => !validColumns.includes(col));
+      if (invalidColumns.length > 0) {
+        return res.status(400).json({ 
+          error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+        });
+      }
     }
 
     // If this is being set as default, unset other defaults
@@ -49,6 +60,7 @@ router.post('/', authenticateToken, async (req, res) => {
         orderIndex: orderIndex || 0,
         isDefault: isDefault || false,
         isFinal: isFinal || false,
+        targetColumns: targetColumns || [],
       })
       .returning();
 
@@ -67,7 +79,18 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, displayName, color, backgroundColor, orderIndex, isDefault, isFinal } = req.body;
+    const { name, displayName, color, backgroundColor, orderIndex, isDefault, isFinal, targetColumns } = req.body;
+
+    // Validate targetColumns if provided
+    const validColumns = ['nesting', 'machining', 'assembly', 'delivery'];
+    if (targetColumns && Array.isArray(targetColumns)) {
+      const invalidColumns = targetColumns.filter(col => !validColumns.includes(col));
+      if (invalidColumns.length > 0) {
+        return res.status(400).json({ 
+          error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+        });
+      }
+    }
 
     // If this is being set as default, unset other defaults
     if (isDefault) {
@@ -87,6 +110,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         orderIndex,
         isDefault,
         isFinal,
+        targetColumns: targetColumns !== undefined ? targetColumns : undefined,
         updatedAt: new Date(),
       })
       .where(eq(jobStatuses.id, parseInt(id)))

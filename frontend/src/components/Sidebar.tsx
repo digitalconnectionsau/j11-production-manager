@@ -35,16 +35,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
       href: '/' 
     },
     { 
-      id: 'Clients',
-      name: 'Clients', 
-      icon: 'clients',
-      href: '/clients' 
+      id: 'Jobs',
+      name: 'Jobs', 
+      icon: 'jobs',
+      href: '/jobs' 
     },
     { 
       id: 'Projects',
       name: 'Projects', 
       icon: 'projects',
       href: '/projects' 
+    },
+    { 
+      id: 'Clients',
+      name: 'Clients', 
+      icon: 'clients',
+      href: '/clients' 
     },
     { 
       id: 'Reports',

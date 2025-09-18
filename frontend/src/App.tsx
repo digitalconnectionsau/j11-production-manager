@@ -4,6 +4,7 @@ import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import Jobs from './pages/Jobs';
 import Clients from './pages/Clients';
 import ClientDetails from './pages/ClientDetails';
 import Projects from './pages/Projects';
@@ -88,6 +89,11 @@ const AppContent: React.FC = () => {
     switch (currentPage) {
       case 'Dashboard':
         return <Dashboard />;
+      case 'Jobs':
+        if (selectedJobId && selectedProjectId) {
+          return <JobDetails jobId={selectedJobId} projectId={selectedProjectId} onBack={handleBackToProject} />;
+        }
+        return <Jobs onProjectSelect={handleProjectSelect} onJobSelect={handleJobSelect} />;
       case 'Clients':
         if (selectedClientId) {
           return <ClientDetails clientId={selectedClientId} onBack={handleBackToClients} />;

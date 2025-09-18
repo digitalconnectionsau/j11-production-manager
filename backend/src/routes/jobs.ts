@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db/index.js';
 import { eq, desc } from 'drizzle-orm';
-import { jobs, projects, clients } from '../db/schema.js';
+import { jobs, projects, clients, jobStatuses } from '../db/schema.js';
 import { authenticateToken, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -21,15 +21,26 @@ router.get('/', authenticateToken, async (req, res) => {
         assemblyDate: jobs.assemblyDate,
         deliveryDate: jobs.deliveryDate,
         status: jobs.status,
+        statusId: jobs.statusId,
         comments: jobs.comments,
         createdAt: jobs.createdAt,
         updatedAt: jobs.updatedAt,
         projectName: projects.name,
         clientName: clients.name,
+        statusInfo: {
+          id: jobStatuses.id,
+          name: jobStatuses.name,
+          displayName: jobStatuses.displayName,
+          color: jobStatuses.color,
+          backgroundColor: jobStatuses.backgroundColor,
+          isDefault: jobStatuses.isDefault,
+          isFinal: jobStatuses.isFinal,
+        },
       })
       .from(jobs)
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(clients, eq(projects.clientId, clients.id))
+      .leftJoin(jobStatuses, eq(jobs.statusId, jobStatuses.id))
       .orderBy(desc(jobs.createdAt));
 
     res.json(allJobs);
@@ -56,15 +67,26 @@ router.get('/:id', authenticateToken, async (req, res) => {
         assemblyDate: jobs.assemblyDate,
         deliveryDate: jobs.deliveryDate,
         status: jobs.status,
+        statusId: jobs.statusId,
         comments: jobs.comments,
         createdAt: jobs.createdAt,
         updatedAt: jobs.updatedAt,
         projectName: projects.name,
         clientName: clients.name,
+        statusInfo: {
+          id: jobStatuses.id,
+          name: jobStatuses.name,
+          displayName: jobStatuses.displayName,
+          color: jobStatuses.color,
+          backgroundColor: jobStatuses.backgroundColor,
+          isDefault: jobStatuses.isDefault,
+          isFinal: jobStatuses.isFinal,
+        },
       })
       .from(jobs)
       .leftJoin(projects, eq(jobs.projectId, projects.id))
       .leftJoin(clients, eq(projects.clientId, clients.id))
+      .leftJoin(jobStatuses, eq(jobs.statusId, jobStatuses.id))
       .where(eq(jobs.id, jobId))
       .limit(1);
 
