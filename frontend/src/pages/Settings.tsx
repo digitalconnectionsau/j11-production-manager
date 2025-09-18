@@ -31,12 +31,12 @@ const Settings: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [systemInfo, setSystemInfo] = useState({
+  const systemInfo = {
     version: '1.0.0',
     environment: 'Development',
     lastUpdated: new Date().toLocaleDateString('en-AU'),
     database: 'PostgreSQL'
-  });
+  };
 
   // Update company settings
   const updateCompanySettings = async (e: React.FormEvent) => {
