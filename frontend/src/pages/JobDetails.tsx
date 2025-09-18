@@ -44,6 +44,49 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
     { value: 'delivered', label: 'Delivered' }
   ];
 
+  // Get formatted status label
+  const getStatusLabel = (status: string) => {
+    const option = statusOptions.find(opt => opt.value === status);
+    return option ? option.label : status.replace('-', ' ');
+  };
+
+  // Get next status in the cycle
+  const getNextStatus = (currentStatus: string) => {
+    const currentIndex = statusOptions.findIndex(option => option.value === currentStatus);
+    const nextIndex = (currentIndex + 1) % statusOptions.length;
+    return statusOptions[nextIndex].value;
+  };
+
+  // Handle status cycling
+  const handleStatusCycle = async () => {
+    if (!job || saving) return;
+
+    const nextStatus = getNextStatus(job.status);
+    
+    try {
+      setSaving(true);
+      const response = await fetch(`${API_URL}/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...job, status: nextStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update job status');
+      }
+
+      const updatedJob = await response.json();
+      setJob(updatedJob);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update job status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchJob();
   }, [jobId]);
@@ -418,10 +461,15 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${getStatusColor(job.status)}`}>
-                  {job.status.replace('-', ' ')}
-                </span>
+                <label className="block text-sm font-medium text-gray-700">Status (click to cycle)</label>
+                <button
+                  onClick={handleStatusCycle}
+                  disabled={saving}
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 transition-all hover:opacity-80 hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-gray-300 ${getStatusColor(job.status)}`}
+                  title={`Click to change to: ${getStatusLabel(getNextStatus(job.status))}`}
+                >
+                  {saving ? 'Updating...' : getStatusLabel(job.status)}
+                </button>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Unit</label>

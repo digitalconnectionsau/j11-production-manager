@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AddProjectModal from '../components/AddProjectModal';
 
 interface Contact {
   id?: number;
@@ -44,7 +45,6 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
   // Future modal states - will be used when modals are implemented
   // @ts-ignore
   const [showAddContactModal, setShowAddContactModal] = useState(false);
-  // @ts-ignore
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const { token } = useAuth();
 
@@ -195,7 +195,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
         />
       )}
 
-      {/* Modals would go here */}
+      {/* Modals */}
+      <AddProjectModal
+        isOpen={showAddProjectModal}
+        onClose={() => setShowAddProjectModal(false)}
+        onProjectAdded={fetchClient}
+        defaultClientId={client?.id}
+      />
     </div>
   );
 };
