@@ -39,11 +39,11 @@ FROM (VALUES
     ('unit', 120, 1),
     ('type', 120, 2),
     ('items', 150, 3),
-    ('project', 200, 4),
-    ('nesting', 120, 5),
-    ('machining', 120, 6),
-    ('assembly', 120, 7),
-    ('delivery', 120, 8),
+    ('projectName', 200, 4),
+    ('nestingDate', 120, 5),
+    ('machiningDate', 120, 6),
+    ('assemblyDate', 120, 7),
+    ('deliveryDate', 120, 8),
     ('status', 150, 9),
     ('actions', 100, 10)
 ) AS default_columns(column_name, width_px, order_index)
