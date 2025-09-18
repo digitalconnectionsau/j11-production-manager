@@ -3,6 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import AddJobModal from '../components/AddJobModal';
 import BulkUploadModal from '../components/BulkUploadModal';
 
+interface ColumnTarget {
+  column: string;
+  color: string;
+}
+
 interface Job {
   id: number;
   projectId: number;
@@ -26,6 +31,7 @@ interface Job {
     backgroundColor: string;
     isDefault: boolean;
     isFinal: boolean;
+    targetColumns?: ColumnTarget[];
   } | null;
 }
 
@@ -333,6 +339,23 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     return {
       color: job.statusInfo.color,
       backgroundColor: job.statusInfo.backgroundColor,
+    };
+  };
+
+  const getColumnStyle = (job: Job, columnName: string) => {
+    if (!job.statusInfo?.targetColumns) {
+      return {};
+    }
+    
+    // Find the specific column targeting rule
+    const targetRule = job.statusInfo.targetColumns.find(target => target.column === columnName);
+    if (!targetRule) {
+      return {};
+    }
+    
+    return {
+      backgroundColor: targetRule.color,
+      color: '#ffffff', // Use white text for better contrast
     };
   };
 
@@ -684,22 +707,34 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                       <div className="text-sm font-medium text-gray-900">{job.items}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div 
+                        className="text-sm text-gray-900"
+                        style={getColumnStyle(job, 'nesting')}
+                      >
                         {formatDate(job.nestingDate || '')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div 
+                        className="text-sm text-gray-900"
+                        style={getColumnStyle(job, 'machining')}
+                      >
                         {formatDate(job.machiningDate || '')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div 
+                        className="text-sm text-gray-900"
+                        style={getColumnStyle(job, 'assembly')}
+                      >
                         {formatDate(job.assemblyDate || '')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div 
+                        className="text-sm text-gray-900"
+                        style={getColumnStyle(job, 'delivery')}
+                      >
                         {formatDate(job.deliveryDate || '')}
                       </div>
                     </td>

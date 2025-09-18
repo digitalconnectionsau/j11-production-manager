@@ -115,6 +115,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
           backgroundColor: jobStatuses.backgroundColor,
           isDefault: jobStatuses.isDefault,
           isFinal: jobStatuses.isFinal,
+          targetColumns: jobStatuses.targetColumns,
         },
       })
       .from(jobs)
