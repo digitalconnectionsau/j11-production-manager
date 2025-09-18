@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import JobStatusManagement from '../components/settings/JobStatusManagement';
 import HolidaysManagement from '../components/HolidaysManagement';
 import LeadTimesManagement from '../components/settings/LeadTimesManagement';
+import UserManagement from '../components/settings/UserManagement';
 
 interface AppSettings {
   companyName: string;
@@ -16,20 +17,26 @@ interface AppSettings {
 }
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'company' | 'system'>('holidays');
+  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'company' | 'system' | 'users'>('holidays');
   const [appSettings, setAppSettings] = useState<AppSettings>({
     companyName: 'J11 Productions',
     companyEmail: 'info@j11productions.com',
-    companyPhone: '+1 (555) 123-4567',
-    companyAddress: '123 Production Ave\nStudio City, CA 90210',
-    timezone: 'America/Los_Angeles',
-    dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
+    companyPhone: '+61 7 5555 0000',
+    companyAddress: 'Gold Coast, Queensland\nAustralia',
+    timezone: 'Australia/Brisbane',
+    dateFormat: 'DD/MM/YYYY',
+    currency: 'AUD',
     projectStatuses: ['active', 'completed', 'on-hold', 'cancelled'],
     taskPriorities: ['low', 'medium', 'high']
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [systemInfo, setSystemInfo] = useState({
+    version: '1.0.0',
+    environment: 'Development',
+    lastUpdated: new Date().toLocaleDateString('en-AU'),
+    database: 'PostgreSQL'
+  });
 
   // Update company settings
   const updateCompanySettings = async (e: React.FormEvent) => {
@@ -51,6 +58,7 @@ const Settings: React.FC = () => {
     { id: 'holidays', label: 'Holidays', icon: '📅' },
     { id: 'job-status', label: 'Job Status', icon: '⚡' },
     { id: 'lead-times', label: 'Lead Times', icon: '⏱️' },
+    { id: 'users', label: 'Users', icon: '👥' },
     { id: 'company', label: 'Company', icon: '🏢' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
@@ -112,6 +120,13 @@ const Settings: React.FC = () => {
       {activeTab === 'lead-times' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <LeadTimesManagement />
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <UserManagement />
         </div>
       )}
 
@@ -197,10 +212,10 @@ const Settings: React.FC = () => {
 
       {/* System Tab */}
       {activeTab === 'system' && (
-        <div className="space-y-8">
-          {/* Application Settings */}
+        <div className="space-y-6">
+          {/* Regional Settings */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Application Settings</h3>
+            <h3 className="text-lg font-semibold mb-4">Regional Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -211,12 +226,35 @@ const Settings: React.FC = () => {
                   onChange={(e) => setAppSettings({...appSettings, timezone: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                  <option value="America/New_York">Eastern Time (ET)</option>
-                  <option value="America/Chicago">Central Time (CT)</option>
-                  <option value="America/Denver">Mountain Time (MT)</option>
-                  <option value="UTC">UTC</option>
+                  <optgroup label="Queensland">
+                    <option value="Australia/Brisbane">Brisbane (AEST/AEDT)</option>
+                  </optgroup>
+                  <optgroup label="New South Wales / Victoria / Tasmania">
+                    <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+                    <option value="Australia/Melbourne">Melbourne (AEST/AEDT)</option>
+                    <option value="Australia/Hobart">Hobart (AEST/AEDT)</option>
+                  </optgroup>
+                  <optgroup label="South Australia / Northern Territory">
+                    <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
+                    <option value="Australia/Darwin">Darwin (ACST)</option>
+                  </optgroup>
+                  <optgroup label="Western Australia">
+                    <option value="Australia/Perth">Perth (AWST)</option>
+                  </optgroup>
+                  <optgroup label="Lord Howe Island">
+                    <option value="Australia/Lord_Howe">Lord Howe Island (LHST/LHDT)</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option value="UTC">UTC</option>
+                  </optgroup>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Current time: {new Date().toLocaleString('en-AU', { 
+                    timeZone: appSettings.timezone, 
+                    dateStyle: 'short', 
+                    timeStyle: 'short' 
+                  })}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -227,62 +265,42 @@ const Settings: React.FC = () => {
                   onChange={(e) => setAppSettings({...appSettings, dateFormat: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  <option value="DD/MM/YYYY">DD/MM/YYYY (Australian Standard)</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY (US Format)</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD (ISO Format)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Example: {new Date().toLocaleDateString('en-AU', {
+                    day: '2-digit',
+                    month: '2-digit', 
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Currency
+                </label>
+                <select
+                  value={appSettings.currency}
+                  onChange={(e) => setAppSettings({...appSettings, currency: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="AUD">Australian Dollar (AUD)</option>
+                  <option value="USD">US Dollar (USD)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="GBP">British Pound (GBP)</option>
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* System Preferences */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">System Preferences</h3>
-            <p className="text-gray-600 text-sm">
-              Additional system configuration options will be available here.
-            </p>
-          </div>
-
-          {/* Project Configuration */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4">Project Configuration</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Project Statuses
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {appSettings.projectStatuses.map((status, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
-                    >
-                      {status}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Configure project statuses in the database schema</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Priorities
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {appSettings.taskPriorities.map((priority, index) => (
-                    <span
-                      key={index}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                        priority === 'high' ? 'bg-red-100 text-red-800' :
-                        priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {priority}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Configure task priorities in the database schema</p>
-              </div>
+            <div className="mt-6">
+              <button
+                onClick={updateCompanySettings}
+                disabled={loading}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save Regional Settings'}
+              </button>
             </div>
           </div>
 
@@ -292,19 +310,19 @@ const Settings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="font-medium text-gray-700">Application Version:</span>
-                <span className="ml-2 text-gray-600">1.0.0</span>
+                <span className="ml-2 text-gray-600">{systemInfo.version}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Environment:</span>
-                <span className="ml-2 text-gray-600">Development</span>
+                <span className="ml-2 text-gray-600">{systemInfo.environment}</span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">Database:</span>
-                <span className="ml-2 text-gray-600">PostgreSQL</span>
+                <span className="ml-2 text-gray-600">{systemInfo.database}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Last Backup:</span>
-                <span className="ml-2 text-gray-600">Not configured</span>
+                <span className="font-medium text-gray-700">Last Updated:</span>
+                <span className="ml-2 text-gray-600">{systemInfo.lastUpdated}</span>
               </div>
             </div>
           </div>

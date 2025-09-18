@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import roleRoutes from './routes/roles.js';
 import projectRoutes from './routes/projects.js';
 import clientRoutes from './routes/clients.js';
 import jobRoutes from './routes/jobs.js';
@@ -14,6 +15,7 @@ import holidaysRoutes from './routes/holidays.js';
 import pinnedRoutes from './routes/pinned.js';
 import leadTimesRoutes from './routes/leadTimes.js';
 import analyticsRoutes from './routes/analytics.js';
+import contactsRoutes from './routes/contacts.js';
 
 // Load environment variables
 dotenv.config();
@@ -51,8 +53,10 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/roles', roleRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/contacts', contactsRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/job-statuses', jobStatusRoutes);
 app.use('/api/holidays', holidaysRoutes);

@@ -13,6 +13,15 @@ interface Contact {
   isPrimary: boolean;
 }
 
+interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Client {
   id: number;
   name: string;
@@ -24,7 +33,7 @@ interface Client {
   notes?: string;
   isActive: boolean;
   status: string;
-  projects: number; // Currently just a count, not an array
+  projects: Project[]; // Changed from number to Project array
   lastContact?: string;
   contacts?: Contact[];
   createdAt?: string;
@@ -66,6 +75,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       }
 
       const data = await response.json();
+      // Ensure projects is always an array
+      data.projects = data.projects || [];
       setClient(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch client');
@@ -211,15 +222,15 @@ const OverviewTab: React.FC<{ client: Client }> = ({ client }) => (
   <div className="space-y-6">
     {/* Key Stats */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-light-grey p-4">
         <h3 className="text-sm font-medium text-charcoal mb-2">Total Projects</h3>
-        <p className="text-3xl font-bold text-black">{client.projects || 0}</p>
+        <p className="text-3xl font-bold text-black">{client.projects?.length || 0}</p>
       </div>
-      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+      
+      <div className="bg-white rounded-lg shadow-sm border border-light-grey p-4">
         <h3 className="text-sm font-medium text-charcoal mb-2">Active Projects</h3>
-        <p className="text-3xl font-bold text-primary">
-          {/* For now, we'll show the same count since we don't have active vs inactive breakdown */}
-          {client.projects || 0}
+        <p className="text-3xl font-bold text-black">
+          {client.projects?.filter(p => p.status === 'active').length || 0}
         </p>
       </div>
       <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
@@ -266,35 +277,73 @@ const OverviewTab: React.FC<{ client: Client }> = ({ client }) => (
 );
 
 // Projects Tab Component
-const ProjectsTab: React.FC<{ client: Client; onAddProject: () => void }> = ({ client, onAddProject }) => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <h3 className="text-lg font-medium text-black">Projects</h3>
-      <button
-        onClick={onAddProject}
-        className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-      >
-        + Add Project
-      </button>
-    </div>
-
-    {/* TODO: Replace this with actual project data from backend */}
-    <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-light-grey">
-      <div className="mb-4">
-        <p className="text-charcoal">Projects feature coming soon</p>
-        <p className="text-sm text-charcoal mt-2">
-          This company has {client.projects || 0} project{client.projects === 1 ? '' : 's'} in the database
-        </p>
+const ProjectsTab: React.FC<{ client: Client; onAddProject: () => void }> = ({ client, onAddProject }) => {
+  const projects = client.projects || [];
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium text-black">Projects</h3>
+        <button
+          onClick={onAddProject}
+          className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          + Add Project
+        </button>
       </div>
-      <button
-        onClick={onAddProject}
-        className="mt-4 text-primary hover:opacity-80 font-medium"
-      >
-        Add the first project
-      </button>
+
+      {projects.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-light-grey">
+          <div className="mb-4">
+            <p className="text-charcoal">No projects found</p>
+            <p className="text-sm text-charcoal mt-2">
+              This client doesn't have any projects yet.
+            </p>
+          </div>
+          <button
+            onClick={onAddProject}
+            className="mt-4 text-primary hover:opacity-80 font-medium"
+          >
+            Add the first project
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {projects.map((project) => (
+            <div key={project.id} className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h4 className="text-lg font-medium text-black mb-2">{project.name}</h4>
+                  {project.description && (
+                    <p className="text-charcoal text-sm mb-3">{project.description}</p>
+                  )}
+                  <div className="flex items-center space-x-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      project.status === 'active' ? 'bg-green-100 text-green-800' :
+                      project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                      project.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                    </span>
+                    <span className="text-sm text-charcoal">
+                      Created: {new Date(project.createdAt).toLocaleDateString('en-AU')}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <button className="text-charcoal hover:text-primary text-sm font-medium">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // Details Tab Component
 const DetailsTab: React.FC<{ client: Client; onAddContact: () => void }> = ({ client, onAddContact }) => (
