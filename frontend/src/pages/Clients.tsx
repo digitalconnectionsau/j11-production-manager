@@ -410,7 +410,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                     <div>
                       <div className="text-sm font-medium text-black">{client.name}</div>
                       {client.company && (
-                        <div className="text-sm text-charcoal">Official: {client.company}</div>
+                        <div className="text-sm text-charcoal">{client.company}</div>
                       )}
                     </div>
                   </td>
@@ -421,9 +421,6 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
                       )}
                       {client.email && (
                         <div className="text-sm text-charcoal">{client.email}</div>
-                      )}
-                      {client.phone && (
-                        <div className="text-sm text-charcoal">{client.phone}</div>
                       )}
                     </div>
                   </td>

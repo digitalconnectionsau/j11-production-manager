@@ -1,5 +1,5 @@
 import express from 'express';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { clients, projects } from '../db/schema.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -22,14 +22,19 @@ router.get('/', authenticateToken, async (req, res) => {
         isActive: clients.isActive,
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
+        projectCount: sql<number>`COUNT(${projects.id})`,
       })
       .from(clients)
+      .leftJoin(projects, eq(clients.id, projects.clientId))
+      .groupBy(clients.id, clients.name, clients.company, clients.email, clients.phone, 
+               clients.address, clients.contactPerson, clients.notes, clients.isActive, 
+               clients.createdAt, clients.updatedAt)
       .orderBy(desc(clients.createdAt));
 
     // Transform data for frontend
     const clientsWithMetadata = allClients.map(client => ({
       ...client,
-      projects: 0, // TODO: Add project count query
+      projects: client.projectCount || 0,
       lastContact: client.updatedAt?.toISOString().split('T')[0] || client.createdAt?.toISOString().split('T')[0],
       status: client.isActive ? 'Active' : 'Inactive'
     }));
