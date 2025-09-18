@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AddJobModal from '../components/AddJobModal';
+import BulkUploadModal from '../components/BulkUploadModal';
 
 interface Job {
   id: number;
@@ -55,6 +56,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   const [editForm, setEditForm] = useState<Project | null>(null);
   const [isPinning, setIsPinning] = useState(false);
   const [showAddJobModal, setShowAddJobModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'jobs' | 'info'>(initialTab);
   const { token } = useAuth();
 
@@ -532,7 +534,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
               </button>
               <button
                 className="bg-secondary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                onClick={() => {/* TODO: Bulk upload modal */}}
+                onClick={() => setShowBulkUploadModal(true)}
               >
                 <span>📁</span>
                 <span>Bulk Upload</span>
@@ -646,6 +648,19 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
           onJobAdded={() => {
             setShowAddJobModal(false);
             fetchProject(); // Refresh project data to show new job
+          }}
+          projectId={project.id}
+        />
+      )}
+
+      {/* Bulk Upload Modal */}
+      {project && (
+        <BulkUploadModal
+          isOpen={showBulkUploadModal}
+          onClose={() => setShowBulkUploadModal(false)}
+          onJobsAdded={() => {
+            setShowBulkUploadModal(false);
+            fetchProject(); // Refresh project data to show new jobs
           }}
           projectId={project.id}
         />
