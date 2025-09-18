@@ -439,6 +439,46 @@ router.delete('/:id', verifyTokenAndPermission('manage_users'), async (req: Auth
   }
 });
 
+// PATCH /api/users/:id/block - Block or unblock a user
+router.patch('/:id/block', verifyTokenAndPermission('manage_users'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { isBlocked } = req.body;
+
+    if (typeof isBlocked !== 'boolean') {
+      return res.status(400).json({ error: 'isBlocked must be a boolean value' });
+    }
+
+    // Check if user exists
+    const existingUser = await db.select().from(users).where(eq(users.id, userId));
+    if (!existingUser.length) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent blocking/unblocking yourself
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot block/unblock your own account' });
+    }
+
+    // Update user block status
+    await db
+      .update(users)
+      .set({
+        isBlocked,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    res.json({ 
+      message: `User ${isBlocked ? 'blocked' : 'unblocked'} successfully`,
+      isBlocked 
+    });
+  } catch (error) {
+    console.error('Error updating user block status:', error);
+    res.status(500).json({ error: 'Failed to update user block status' });
+  }
+});
+
 // GET /api/users/roles - Get all available roles
 router.get('/roles/list', verifyTokenAndPermission('view_users'), async (req: AuthenticatedRequest, res) => {
   try {

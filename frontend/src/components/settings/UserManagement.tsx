@@ -58,65 +58,22 @@ const UserManagement: React.FC = () => {
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Mock data for development (since database isn't set up yet)
-  const mockUsers: User[] = [
-    {
-      id: 1,
-      email: 'admin@j11.com',
-      username: 'admin',
-      firstName: 'Admin',
-      lastName: 'User',
-      mobile: '+61 400 123 456',
-      department: 'Management',
-      position: 'System Administrator',
-      phone: '+61 7 5555 0001',
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      username: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      mobile: '',
+      department: '',
+      position: '',
+      phone: '',
       isActive: true,
       isBlocked: false,
-      lastLogin: '2024-01-15T10:30:00Z',
-      createdAt: '2024-01-01T00:00:00Z',
-      roles: [{ roleId: 1, roleName: 'super_admin', roleDisplayName: 'Super Administrator' }],
-    },
-    {
-      id: 2,
-      email: 'craig@j11.com',
-      username: 'craig',
-      firstName: 'Craig',
-      lastName: 'Parker',
-      mobile: '+61 400 456 789',
-      department: 'Production',
-      position: 'Production Manager',
-      phone: '+61 7 5555 0002',
-      isActive: true,
-      isBlocked: false,
-      lastLogin: '2024-01-15T09:15:00Z',
-      createdAt: '2024-01-02T00:00:00Z',
-      roles: [{ roleId: 2, roleName: 'project_manager', roleDisplayName: 'Project Manager' }],
-    },
-    {
-      id: 3,
-      email: 'john@j11.com',
-      username: 'john.smith',
-      firstName: 'John',
-      lastName: 'Smith',
-      mobile: '+61 400 789 012',
-      department: 'Production',
-      position: 'Production Assistant',
-      phone: '+61 7 5555 0003',
-      isActive: true,
-      isBlocked: false,
-      lastLogin: '2024-01-14T16:45:00Z',
-      createdAt: '2024-01-03T00:00:00Z',
-      roles: [{ roleId: 3, roleName: 'production_user', roleDisplayName: 'Production User' }],
-    },
-  ];
-
-  const mockRoles: Role[] = [
-    { id: 1, name: 'super_admin', displayName: 'Super Administrator', description: 'Full system access', isSuperAdmin: true },
-    { id: 2, name: 'admin', displayName: 'Administrator', description: 'Administrative access', isSuperAdmin: false },
-    { id: 3, name: 'project_manager', displayName: 'Project Manager', description: 'Manage projects and jobs', isSuperAdmin: false },
-    { id: 4, name: 'production_user', displayName: 'Production User', description: 'View and update job statuses', isSuperAdmin: false },
-    { id: 5, name: 'viewer', displayName: 'Viewer', description: 'Read-only access', isSuperAdmin: false },
-  ];
+      roleIds: [],
+    });
+  };
 
   useEffect(() => {
     loadData();
@@ -125,12 +82,38 @@ const UserManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      // For now, use mock data
-      // In production, this would fetch from the API
-      setUsers(mockUsers);
-      setRoles(mockRoles);
+      
+      // Get authentication token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setMessage({ type: 'error', text: 'Authentication required' });
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      // Fetch users from API
+      const usersResponse = await fetch('/api/users', { headers });
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const usersData = await usersResponse.json();
+      setUsers(usersData.users || []);
+
+      // Fetch roles from API
+      const rolesResponse = await fetch('/api/users/roles/list', { headers });
+      if (!rolesResponse.ok) {
+        throw new Error('Failed to fetch roles');
+      }
+      const rolesData = await rolesResponse.json();
+      setRoles(rolesData);
+
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to load users' });
+      console.error('Error loading data:', error);
+      setMessage({ type: 'error', text: 'Failed to load users and roles' });
     } finally {
       setLoading(false);
     }
@@ -155,20 +138,7 @@ const UserManagement: React.FC = () => {
   const uniqueDepartments = [...new Set(users.map(user => user.department).filter(Boolean))];
 
   const handleAddUser = () => {
-    setFormData({
-      email: '',
-      username: '',
-      firstName: '',
-      lastName: '',
-      password: '',
-      mobile: '',
-      department: '',
-      position: '',
-      phone: '',
-      isActive: true,
-      isBlocked: false,
-      roleIds: [],
-    });
+    resetForm();
     setShowAddModal(true);
   };
 
@@ -194,10 +164,32 @@ const UserManagement: React.FC = () => {
   const handleBlockUser = async (user: User) => {
     if (confirm(`Are you sure you want to ${user.isBlocked ? 'unblock' : 'block'} ${user.firstName} ${user.lastName}?`)) {
       try {
-        // API call would go here
-        setMessage({ type: 'success', text: `User ${user.isBlocked ? 'unblocked' : 'blocked'} successfully` });
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setMessage({ type: 'error', text: 'Authentication required' });
+          return;
+        }
+
+        const response = await fetch(`/api/users/${user.id}/block`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isBlocked: !user.isBlocked
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update user block status');
+        }
+
+        const result = await response.json();
+        setMessage({ type: 'success', text: result.message });
         loadData();
       } catch (error) {
+        console.error('Error updating user block status:', error);
         setMessage({ type: 'error', text: 'Failed to update user status' });
       }
     }
@@ -206,10 +198,28 @@ const UserManagement: React.FC = () => {
   const handleDeleteUser = async (user: User) => {
     if (confirm(`Are you sure you want to deactivate ${user.firstName} ${user.lastName}? This action can be undone.`)) {
       try {
-        // API call would go here
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setMessage({ type: 'error', text: 'Authentication required' });
+          return;
+        }
+
+        const response = await fetch(`/api/users/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to deactivate user');
+        }
+
         setMessage({ type: 'success', text: 'User deactivated successfully' });
         loadData();
       } catch (error) {
+        console.error('Error deactivating user:', error);
         setMessage({ type: 'error', text: 'Failed to deactivate user' });
       }
     }
@@ -218,12 +228,51 @@ const UserManagement: React.FC = () => {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // API call would go here
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setMessage({ type: 'error', text: 'Authentication required' });
+        return;
+      }
+
+      const userData = {
+        email: formData.email,
+        username: formData.username,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        mobile: formData.mobile,
+        department: formData.department,
+        position: formData.position,
+        phone: formData.phone,
+        isActive: formData.isActive,
+        isBlocked: formData.isBlocked,
+        roleIds: formData.roleIds,
+        ...(formData.password && { password: formData.password }), // Only include password if provided
+      };
+
+      const url = selectedUser ? `/api/users/${selectedUser.id}` : '/api/users';
+      const method = selectedUser ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save user');
+      }
+
       setMessage({ type: 'success', text: selectedUser ? 'User updated successfully' : 'User created successfully' });
       setShowAddModal(false);
       setShowEditModal(false);
+      resetForm();
       loadData();
     } catch (error) {
+      console.error('Error saving user:', error);
       setMessage({ type: 'error', text: 'Failed to save user' });
     }
   };

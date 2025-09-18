@@ -70,6 +70,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if user account is blocked or inactive
+    if (foundUser.isBlocked) {
+      return res.status(401).json({ error: 'Your account has been blocked. Please contact an administrator.' });
+    }
+
+    if (!foundUser.isActive) {
+      return res.status(401).json({ error: 'Your account is inactive. Please contact an administrator.' });
+    }
+
     // Generate JWT token
     const fullName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || foundUser.email;
     const token = generateToken({
