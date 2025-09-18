@@ -14,9 +14,19 @@ interface Job {
   assemblyDate?: string;
   deliveryDate?: string;
   status: 'not-assigned' | 'nesting-complete' | 'machining-complete' | 'assembly-complete' | 'delivered';
+  statusId?: number;
   comments?: string;
   createdAt: string;
   updatedAt: string;
+  statusInfo?: {
+    id: number;
+    name: string;
+    displayName: string;
+    color: string;
+    backgroundColor: string;
+    isDefault: boolean;
+    isFinal: boolean;
+  } | null;
 }
 
 interface Project {
@@ -300,6 +310,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         },
         body: JSON.stringify({
           status: nextStatus.name,
+          statusId: nextStatus.id,
         }),
       });
 
@@ -315,14 +326,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     }
   };
 
-  const getJobStatusStyle = (status: string) => {
-    const jobStatus = jobStatuses.find(s => s.name === status);
-    if (!jobStatus) {
+  const getJobStatusStyle = (job: Job) => {
+    if (!job.statusInfo) {
       return { color: '#000', backgroundColor: '#f3f4f6' };
     }
     return {
-      color: jobStatus.color,
-      backgroundColor: jobStatus.backgroundColor,
+      color: job.statusInfo.color,
+      backgroundColor: job.statusInfo.backgroundColor,
     };
   };
 
@@ -695,11 +705,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => cycleJobStatus(job.id, job.status)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cycleJobStatus(job.id, job.status);
+                        }}
                         className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                        style={getJobStatusStyle(job.status)}
+                        style={getJobStatusStyle(job)}
                       >
-                        {jobStatuses.find(s => s.name === job.status)?.displayName || job.status.replace('-', ' ')}
+                        {job.statusInfo?.displayName || job.status.replace('-', ' ')}
                       </button>
                     </td>
                     <td className="px-6 py-4">

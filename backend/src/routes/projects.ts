@@ -103,11 +103,22 @@ router.get('/:id', authenticateToken, async (req, res) => {
         assemblyDate: jobs.assemblyDate,
         deliveryDate: jobs.deliveryDate,
         status: jobs.status,
+        statusId: jobs.statusId,
         comments: jobs.comments,
         createdAt: jobs.createdAt,
         updatedAt: jobs.updatedAt,
+        statusInfo: {
+          id: jobStatuses.id,
+          name: jobStatuses.name,
+          displayName: jobStatuses.displayName,
+          color: jobStatuses.color,
+          backgroundColor: jobStatuses.backgroundColor,
+          isDefault: jobStatuses.isDefault,
+          isFinal: jobStatuses.isFinal,
+        },
       })
       .from(jobs)
+      .leftJoin(jobStatuses, eq(jobs.statusId, jobStatuses.id))
       .where(eq(jobs.projectId, projectId))
       .orderBy(desc(jobs.createdAt));
 

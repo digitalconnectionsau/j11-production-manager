@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AddJobModalProps {
@@ -6,6 +6,28 @@ interface AddJobModalProps {
   onClose: () => void;
   onJobAdded: () => void;
   projectId: number;
+}
+
+interface LeadTime {
+  id: number;
+  fromStatusId: number;
+  toStatusId: number;
+  days: number;
+  direction: 'before' | 'after';
+  isActive: boolean;
+}
+
+interface JobStatus {
+  id: number;
+  name: string;
+  displayName: string;
+  orderIndex: number;
+}
+
+interface Holiday {
+  id: number;
+  date: string;
+  name: string;
 }
 
 const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, projectId }) => {
@@ -22,9 +44,194 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [leadTimes, setLeadTimes] = useState<LeadTime[]>([]);
+  const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   
   const { token } = useAuth();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  // Load lead times, job statuses, and holidays when modal opens
+  useEffect(() => {
+    if (isOpen && token) {
+      loadConfigurationData();
+    }
+  }, [isOpen, token]);
+
+  const loadConfigurationData = async () => {
+    try {
+      // Load lead times
+      const leadTimesResponse = await fetch(`${API_URL}/api/lead-times`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (leadTimesResponse.ok) {
+        const leadTimesData = await leadTimesResponse.json();
+        setLeadTimes(leadTimesData);
+      }
+
+      // Load job statuses
+      const statusesResponse = await fetch(`${API_URL}/api/job-statuses`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (statusesResponse.ok) {
+        const statusesData = await statusesResponse.json();
+        setJobStatuses(statusesData);
+      }
+
+      // Load holidays
+      const holidaysResponse = await fetch(`${API_URL}/api/holidays`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (holidaysResponse.ok) {
+        const holidaysData = await holidaysResponse.json();
+        setHolidays(holidaysData);
+      }
+    } catch (err) {
+      console.error('Error loading configuration data:', err);
+    }
+  };
+
+  // Helper function to check if a date is a weekend
+  const isWeekend = (date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+  };
+
+  // Helper function to check if a date is a holiday
+  const isHoliday = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0];
+    return holidays.some(holiday => holiday.date === dateString);
+  };
+
+  // Calculate working days before a given date
+  const calculateWorkingDaysBefore = (fromDate: Date, workingDays: number) => {
+    const result = new Date(fromDate);
+    let daysToSubtract = 0;
+    
+    while (workingDays > 0) {
+      daysToSubtract++;
+      result.setDate(fromDate.getDate() - daysToSubtract);
+      
+      if (!isWeekend(result) && !isHoliday(result)) {
+        workingDays--;
+      }
+    }
+    
+    return result;
+  };
+
+  // Calculate dates based on delivery date and lead times
+  const calculateDatesFromDelivery = (deliveryDateString: string) => {
+    if (!deliveryDateString || leadTimes.length === 0 || jobStatuses.length === 0) {
+      return {};
+    }
+
+    try {
+      // Parse delivery date (DD/MM/YYYY format)
+      const [day, month, year] = deliveryDateString.split('/');
+      const deliveryDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+      if (isNaN(deliveryDate.getTime())) {
+        return {};
+      }
+
+      // Find status IDs for each stage
+      const deliveredStatus = jobStatuses.find(s => s.name === 'delivered');
+      const assemblyStatus = jobStatuses.find(s => s.name === 'assembly-complete');
+      const machiningStatus = jobStatuses.find(s => s.name === 'machining-complete');
+      const nestingStatus = jobStatuses.find(s => s.name === 'nesting-complete');
+
+      if (!deliveredStatus) return {};
+
+      const calculatedDates: Record<string, string> = {};
+
+      // Calculate assembly date (before delivery)
+      if (assemblyStatus) {
+        const assemblyLeadTime = leadTimes.find(lt => 
+          lt.fromStatusId === assemblyStatus.id && 
+          lt.toStatusId === deliveredStatus.id && 
+          lt.isActive && 
+          lt.direction === 'before'
+        );
+        
+        if (assemblyLeadTime && assemblyLeadTime.days > 0) {
+          const assemblyDate = calculateWorkingDaysBefore(deliveryDate, assemblyLeadTime.days);
+          calculatedDates.assemblyDate = formatDateForInput(assemblyDate);
+        }
+      }
+
+      // Calculate machining date (before assembly or delivery)
+      if (machiningStatus) {
+        const machiningLeadTime = leadTimes.find(lt => 
+          lt.fromStatusId === machiningStatus.id && 
+          ((assemblyStatus && lt.toStatusId === assemblyStatus.id) || lt.toStatusId === deliveredStatus.id) &&
+          lt.isActive && 
+          lt.direction === 'before'
+        );
+        
+        if (machiningLeadTime && machiningLeadTime.days > 0) {
+          // Use assembly date as reference if available, otherwise delivery date
+          const referenceDate = calculatedDates.assemblyDate 
+            ? parseDateFromInput(calculatedDates.assemblyDate)
+            : deliveryDate;
+          
+          if (referenceDate) {
+            const machiningDate = calculateWorkingDaysBefore(referenceDate, machiningLeadTime.days);
+            calculatedDates.machiningDate = formatDateForInput(machiningDate);
+          }
+        }
+      }
+
+      // Calculate nesting date (before machining, assembly, or delivery)
+      if (nestingStatus) {
+        const nestingLeadTime = leadTimes.find(lt => 
+          lt.fromStatusId === nestingStatus.id && 
+          ((machiningStatus && lt.toStatusId === machiningStatus.id) || 
+           (assemblyStatus && lt.toStatusId === assemblyStatus.id) || 
+           lt.toStatusId === deliveredStatus.id) &&
+          lt.isActive && 
+          lt.direction === 'before'
+        );
+        
+        if (nestingLeadTime && nestingLeadTime.days > 0) {
+          // Use the earliest available reference date
+          const referenceDate = calculatedDates.machiningDate 
+            ? parseDateFromInput(calculatedDates.machiningDate)
+            : calculatedDates.assemblyDate 
+              ? parseDateFromInput(calculatedDates.assemblyDate)
+              : deliveryDate;
+          
+          if (referenceDate) {
+            const nestingDate = calculateWorkingDaysBefore(referenceDate, nestingLeadTime.days);
+            calculatedDates.nestingDate = formatDateForInput(nestingDate);
+          }
+        }
+      }
+
+      return calculatedDates;
+    } catch (err) {
+      console.error('Error calculating dates:', err);
+      return {};
+    }
+  };
+
+  // Helper function to format date for input field (DD/MM/YYYY)
+  const formatDateForInput = (date: Date) => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Helper function to parse date from input field (DD/MM/YYYY)
+  const parseDateFromInput = (dateString: string) => {
+    try {
+      const [day, month, year] = dateString.split('/');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } catch {
+      return null;
+    }
+  };
 
   const statusOptions = [
     { value: 'not-assigned', label: 'Not Assigned' },
@@ -90,10 +297,24 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        [name]: value
+      };
+
+      // If delivery date is changed and it's valid, calculate other dates
+      if (name === 'deliveryDate' && value && validateDate(value)) {
+        const calculatedDates = calculateDatesFromDelivery(value);
+        return {
+          ...newFormData,
+          ...calculatedDates
+        };
+      }
+
+      return newFormData;
+    });
   };
 
   // Date validation for DD/MM/YYYY format
@@ -266,6 +487,9 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
               <div>
                 <label htmlFor="deliveryDate" className="block text-sm font-medium text-black mb-2">
                   Delivery Date
+                  <span className="text-xs text-gray-500 font-normal ml-2">
+                    (Other dates will be calculated automatically)
+                  </span>
                 </label>
                 <input
                   type="text"

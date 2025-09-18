@@ -159,6 +159,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
       assemblyDate, 
       deliveryDate, 
       status, 
+      statusId,
       comments 
     } = req.body;
 
@@ -173,6 +174,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         assemblyDate,
         deliveryDate,
         status,
+        statusId,
         comments,
         updatedAt: new Date(),
       })

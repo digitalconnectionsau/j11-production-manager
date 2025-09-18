@@ -102,6 +102,7 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
   // Use column preferences hook
   const {
     preferences: columnPreferences,
+    loading: columnPreferencesLoading,
     updatePreferences,
     updateSinglePreference,
     resetPreferences,
@@ -376,13 +377,48 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
 
   // Get visible columns in the correct order
   const getVisibleColumns = () => {
+    // If column preferences are still loading, return a minimal set to prevent layout issues
+    if (columnPreferencesLoading) {
+      return ['items', 'projectName', 'status', 'actions'];
+    }
+    
+    // Always include actions column at the end
+    const actionsColumn = ['actions'];
+    
     if (columnPreferences.length === 0) {
       // Return default columns if no preferences are set
-      return availableColumns.filter(col => col !== 'actions').concat(['actions']);
+      return availableColumns.filter(col => col !== 'actions').concat(actionsColumn);
     }
     
     const orderedColumns = getColumnOrder();
-    return orderedColumns.filter(col => getColumnVisibility(col)).concat(['actions']);
+    
+    // If orderedColumns is empty (no proper order data), fall back to availableColumns
+    if (orderedColumns.length === 0) {
+      const visibleColumns = availableColumns.filter(col => {
+        if (col === 'actions') return false; // Handle actions separately
+        return getColumnVisibility(col);
+      });
+      
+      // Safety fallback: if no columns are visible, show some essential ones
+      if (visibleColumns.length === 0) {
+        return ['items', 'projectName', 'status'].concat(actionsColumn);
+      }
+      
+      return visibleColumns.concat(actionsColumn);
+    }
+    
+    // Use the ordered columns and filter by visibility
+    const visibleColumns = orderedColumns.filter(col => {
+      if (col === 'actions') return false; // Handle actions separately
+      return getColumnVisibility(col);
+    });
+    
+    // Safety fallback: if no columns are visible, show some essential ones
+    if (visibleColumns.length === 0) {
+      return ['items', 'projectName', 'status'].concat(actionsColumn);
+    }
+    
+    return visibleColumns.concat(actionsColumn);
   };
 
   // Column configuration for the table
