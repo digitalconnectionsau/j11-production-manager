@@ -34,11 +34,35 @@ router.post('/', authenticateToken, async (req, res) => {
     // Validate targetColumns if provided
     const validColumns = ['nesting', 'machining', 'assembly', 'delivery'];
     if (targetColumns && Array.isArray(targetColumns)) {
-      const invalidColumns = targetColumns.filter(col => !validColumns.includes(col));
-      if (invalidColumns.length > 0) {
-        return res.status(400).json({ 
-          error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
-        });
+      // Check if it's the new format (array of objects) or old format (array of strings)
+      const isNewFormat = targetColumns.every(item => 
+        typeof item === 'object' && item !== null && 'column' in item && 'color' in item
+      );
+      
+      if (isNewFormat) {
+        // Validate new format: array of { column, color } objects
+        const invalidColumns = targetColumns.filter(target => !validColumns.includes(target.column));
+        if (invalidColumns.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid target columns: ${invalidColumns.map(t => t.column).join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+          });
+        }
+        
+        // Validate color format
+        const invalidColors = targetColumns.filter(target => !/^#[0-9A-Fa-f]{6}$/.test(target.color));
+        if (invalidColors.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid color format for columns: ${invalidColors.map(t => t.column).join(', ')}. Colors must be in hex format (#RRGGBB)` 
+          });
+        }
+      } else {
+        // Handle old format for backward compatibility
+        const invalidColumns = targetColumns.filter(col => typeof col === 'string' && !validColumns.includes(col));
+        if (invalidColumns.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+          });
+        }
       }
     }
 
@@ -84,11 +108,35 @@ router.put('/:id', authenticateToken, async (req, res) => {
     // Validate targetColumns if provided
     const validColumns = ['nesting', 'machining', 'assembly', 'delivery'];
     if (targetColumns && Array.isArray(targetColumns)) {
-      const invalidColumns = targetColumns.filter(col => !validColumns.includes(col));
-      if (invalidColumns.length > 0) {
-        return res.status(400).json({ 
-          error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
-        });
+      // Check if it's the new format (array of objects) or old format (array of strings)
+      const isNewFormat = targetColumns.every(item => 
+        typeof item === 'object' && item !== null && 'column' in item && 'color' in item
+      );
+      
+      if (isNewFormat) {
+        // Validate new format: array of { column, color } objects
+        const invalidColumns = targetColumns.filter(target => !validColumns.includes(target.column));
+        if (invalidColumns.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid target columns: ${invalidColumns.map(t => t.column).join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+          });
+        }
+        
+        // Validate color format
+        const invalidColors = targetColumns.filter(target => !/^#[0-9A-Fa-f]{6}$/.test(target.color));
+        if (invalidColors.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid color format for columns: ${invalidColors.map(t => t.column).join(', ')}. Colors must be in hex format (#RRGGBB)` 
+          });
+        }
+      } else {
+        // Handle old format for backward compatibility
+        const invalidColumns = targetColumns.filter(col => typeof col === 'string' && !validColumns.includes(col));
+        if (invalidColumns.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid target columns: ${invalidColumns.join(', ')}. Valid columns are: ${validColumns.join(', ')}` 
+          });
+        }
       }
     }
 

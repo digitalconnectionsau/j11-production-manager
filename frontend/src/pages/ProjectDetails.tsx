@@ -50,7 +50,12 @@ interface JobStatus {
   orderIndex: number;
   isDefault: boolean;
   isFinal: boolean;
-  targetColumns?: string[];
+  targetColumns?: ColumnTarget[];
+}
+
+interface ColumnTarget {
+  column: string;
+  color: string;
 }
 
 interface ProjectDetailsProps {

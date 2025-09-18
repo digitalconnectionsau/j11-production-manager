@@ -16,6 +16,7 @@ import pinnedRoutes from './routes/pinned.js';
 import leadTimesRoutes from './routes/leadTimes.js';
 import analyticsRoutes from './routes/analytics.js';
 import contactsRoutes from './routes/contacts.js';
+import userColumnPreferencesRoutes from './routes/userColumnPreferences.js';
 
 // Load environment variables
 dotenv.config();
@@ -63,6 +64,7 @@ app.use('/api/holidays', holidaysRoutes);
 app.use('/api/pinned', pinnedRoutes);
 app.use('/api/lead-times', leadTimesRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/user-column-preferences', userColumnPreferencesRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

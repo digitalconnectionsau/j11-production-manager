@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   return (
-    <div className="fixed left-0 top-0 w-64 bg-charcoal text-white h-screen flex flex-col">
+    <div className="fixed left-0 top-0 w-64 bg-black text-white h-screen flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-light-grey border-opacity-20">
         <div className="flex items-center space-x-3">

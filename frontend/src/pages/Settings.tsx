@@ -3,6 +3,7 @@ import JobStatusManagement from '../components/settings/JobStatusManagement';
 import HolidaysManagement from '../components/HolidaysManagement';
 import LeadTimesManagement from '../components/settings/LeadTimesManagement';
 import UserManagement from '../components/settings/UserManagement';
+import ImportManagement from '../components/settings/ImportManagement';
 
 interface AppSettings {
   companyName: string;
@@ -17,7 +18,7 @@ interface AppSettings {
 }
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'company' | 'system' | 'users'>('holidays');
+  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users'>('holidays');
   const [appSettings, setAppSettings] = useState<AppSettings>({
     companyName: 'J11 Productions',
     companyEmail: 'info@j11productions.com',
@@ -58,6 +59,7 @@ const Settings: React.FC = () => {
     { id: 'holidays', label: 'Holidays', icon: '📅' },
     { id: 'job-status', label: 'Job Status', icon: '⚡' },
     { id: 'lead-times', label: 'Lead Times', icon: '⏱️' },
+    { id: 'import', label: 'Import', icon: '📁' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'company', label: 'Company', icon: '🏢' },
     { id: 'system', label: 'System', icon: '⚙️' }
@@ -120,6 +122,13 @@ const Settings: React.FC = () => {
       {activeTab === 'lead-times' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <LeadTimesManagement />
+        </div>
+      )}
+
+      {/* Import Tab */}
+      {activeTab === 'import' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <ImportManagement />
         </div>
       )}
 

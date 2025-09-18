@@ -185,6 +185,19 @@ export const leadTimes = pgTable('lead_times', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// User column preferences table for customizable table columns
+export const userColumnPreferences = pgTable('user_column_preferences', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tableName: varchar('table_name', { length: 100 }).notNull(),
+  columnName: varchar('column_name', { length: 100 }).notNull(),
+  isVisible: boolean('is_visible').default(true),
+  widthPx: integer('width_px'),
+  orderIndex: integer('order_index').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -214,3 +227,5 @@ export type JobStatus = typeof jobStatuses.$inferSelect;
 export type NewJobStatus = typeof jobStatuses.$inferInsert;
 export type LeadTime = typeof leadTimes.$inferSelect;
 export type NewLeadTime = typeof leadTimes.$inferInsert;
+export type UserColumnPreference = typeof userColumnPreferences.$inferSelect;
+export type NewUserColumnPreference = typeof userColumnPreferences.$inferInsert;

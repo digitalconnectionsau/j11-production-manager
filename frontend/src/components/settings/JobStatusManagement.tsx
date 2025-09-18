@@ -12,7 +12,12 @@ export interface JobStatus {
   orderIndex: number;
   isDefault: boolean;
   isFinal: boolean;
-  targetColumns?: string[];
+  targetColumns?: ColumnTarget[];
+}
+
+interface ColumnTarget {
+  column: string;
+  color: string;
 }
 
 interface JobStatusManagementProps {
@@ -31,7 +36,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
     displayName: '',
     color: '#ffffff', // Default to white text
     backgroundColor: '#1976d2', // Default background
-    targetColumns: [] as string[], // Column targeting
+    targetColumns: [] as ColumnTarget[], // Column targeting with colors
   });
 
   const { token } = useAuth();
@@ -365,51 +370,103 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
 
           {/* Column Targeting */}
           <div className="mt-6">
-            <label className="block text-sm font-medium text-black mb-3">
-              Target Columns
-            </label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-black">
+                Column Targeting Rules
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    targetColumns: [...formData.targetColumns, { column: 'nesting', color: '#1976d2' }]
+                  });
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Rule
+              </button>
+            </div>
             <p className="text-sm text-gray-600 mb-4">
-              Select which columns in the Jobs table should be colored when this status is active.
+              Create multiple targeting rules to color different columns with different colors when this status is active.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { value: 'nesting', label: 'Nesting' },
-                { value: 'machining', label: 'Machining' },
-                { value: 'assembly', label: 'Assembly' },
-                { value: 'delivery', label: 'Delivery' }
-              ].map((column) => {
-                const isChecked = formData.targetColumns.includes(column.value);
-                return (
-                  <label
-                    key={column.value}
-                    className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      isChecked 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
+            
+            <div className="space-y-3">
+              {formData.targetColumns.map((target, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  {/* Column Selection */}
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Column</label>
+                    <select
+                      value={target.column}
                       onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            targetColumns: [...formData.targetColumns, column.value]
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            targetColumns: formData.targetColumns.filter(col => col !== column.value)
-                          });
-                        }
+                        const newTargets = [...formData.targetColumns];
+                        newTargets[index] = { ...newTargets[index], column: e.target.value };
+                        setFormData({ ...formData, targetColumns: newTargets });
                       }}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium">{column.label}</span>
-                  </label>
-                );
-              })}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="nesting">Nesting</option>
+                      <option value="machining">Machining</option>
+                      <option value="assembly">Assembly</option>
+                      <option value="delivery">Delivery</option>
+                    </select>
+                  </div>
+
+                  {/* Color Selection */}
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-600 mb-1">Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={target.color}
+                        onChange={(e) => {
+                          const newTargets = [...formData.targetColumns];
+                          newTargets[index] = { ...newTargets[index], color: e.target.value };
+                          setFormData({ ...formData, targetColumns: newTargets });
+                        }}
+                        className="w-10 h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={target.color}
+                        onChange={(e) => {
+                          const newTargets = [...formData.targetColumns];
+                          newTargets[index] = { ...newTargets[index], color: e.target.value };
+                          setFormData({ ...formData, targetColumns: newTargets });
+                        }}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="#1976d2"
+                        pattern="^#[0-9A-Fa-f]{6}$"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newTargets = formData.targetColumns.filter((_, i) => i !== index);
+                      setFormData({ ...formData, targetColumns: newTargets });
+                    }}
+                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove rule"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              
+              {formData.targetColumns.length === 0 && (
+                <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  No column targeting rules. Click "Add Rule" to create one.
+                </div>
+              )}
             </div>
           </div>
 

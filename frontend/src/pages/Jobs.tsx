@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import ColumnManager from '../components/ColumnManager';
+import ResizableColumnHeader from '../components/ResizableColumnHeader';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -28,8 +31,13 @@ interface Job {
     backgroundColor: string;
     isDefault: boolean;
     isFinal: boolean;
-    targetColumns?: string[];
+    targetColumns?: ColumnTarget[];
   } | null;
+}
+
+interface ColumnTarget {
+  column: string;
+  color: string;
 }
 
 interface Client {
@@ -52,7 +60,7 @@ interface JobStatus {
   orderIndex: number;
   isDefault: boolean;
   isFinal: boolean;
-  targetColumns?: string[];
+  targetColumns?: ColumnTarget[];
 }
 
 interface JobsProps {
@@ -81,6 +89,26 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
   // Sorting states
   const [sortField, setSortField] = useState<keyof Job>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Column management states
+  const [showColumnManager, setShowColumnManager] = useState(false);
+  
+  // Define available columns
+  const availableColumns = [
+    'unit', 'type', 'items', 'projectName', 'nestingDate', 
+    'machiningDate', 'assemblyDate', 'deliveryDate', 'status', 'actions'
+  ];
+  
+  // Use column preferences hook
+  const {
+    preferences: columnPreferences,
+    updatePreferences,
+    updateSinglePreference,
+    resetPreferences,
+    getColumnVisibility,
+    getColumnWidth,
+    getColumnOrder,
+  } = useColumnPreferences('jobs');
 
   const { token } = useAuth();
 
@@ -219,12 +247,19 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
   };
 
   const getColumnStyle = (job: Job, columnName: string) => {
-    if (!job.statusInfo?.targetColumns || !job.statusInfo.targetColumns.includes(columnName)) {
+    if (!job.statusInfo?.targetColumns) {
       return {};
     }
+    
+    // Find the specific column targeting rule
+    const targetRule = job.statusInfo.targetColumns.find(target => target.column === columnName);
+    if (!targetRule) {
+      return {};
+    }
+    
     return {
-      backgroundColor: job.statusInfo.backgroundColor,
-      color: job.statusInfo.color,
+      backgroundColor: targetRule.color,
+      color: '#ffffff', // Use white text for better contrast
     };
   };
 
@@ -236,6 +271,132 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
     setDateTo('');
     setSearchTerm('');
     setHideCompleted(true);
+  };
+
+  // Render table cell based on column name
+  const renderTableCell = (job: Job, columnName: string) => {
+    const key = `${job.id}-${columnName}`;
+    switch (columnName) {
+      case 'unit':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            {job.unit || '-'}
+          </td>
+        );
+      case 'type':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {job.type || '-'}
+          </td>
+        );
+      case 'items':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            {job.items}
+          </td>
+        );
+      case 'projectName':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
+            <button onClick={() => onProjectSelect?.(job.projectId)}>
+              {job.projectName}
+            </button>
+          </td>
+        );
+      case 'nestingDate':
+        return (
+          <td 
+            key={key}
+            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+            style={getColumnStyle(job, 'nesting')}
+          >
+            {job.nestingDate || '-'}
+          </td>
+        );
+      case 'machiningDate':
+        return (
+          <td 
+            key={key}
+            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+            style={getColumnStyle(job, 'machining')}
+          >
+            {job.machiningDate || '-'}
+          </td>
+        );
+      case 'assemblyDate':
+        return (
+          <td 
+            key={key}
+            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+            style={getColumnStyle(job, 'assembly')}
+          >
+            {job.assemblyDate || '-'}
+          </td>
+        );
+      case 'deliveryDate':
+        return (
+          <td 
+            key={key}
+            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+            style={getColumnStyle(job, 'delivery')}
+          >
+            {job.deliveryDate || '-'}
+          </td>
+        );
+      case 'status':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap">
+            <span
+              className="inline-flex px-2 py-1 text-xs font-medium rounded-full"
+              style={getStatusStyle(job)}
+            >
+              {job.statusInfo?.displayName || job.status}
+            </span>
+          </td>
+        );
+      case 'actions':
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <button
+              onClick={() => onJobSelect?.(job.id)}
+              className="text-blue-600 hover:text-blue-900"
+            >
+              View
+            </button>
+          </td>
+        );
+      default:
+        return (
+          <td key={key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            -
+          </td>
+        );
+    }
+  };
+
+  // Get visible columns in the correct order
+  const getVisibleColumns = () => {
+    if (columnPreferences.length === 0) {
+      // Return default columns if no preferences are set
+      return availableColumns.filter(col => col !== 'actions').concat(['actions']);
+    }
+    
+    const orderedColumns = getColumnOrder();
+    return orderedColumns.filter(col => getColumnVisibility(col)).concat(['actions']);
+  };
+
+  // Column configuration for the table
+  const columnConfig = {
+    unit: { label: 'Unit', sortable: true },
+    type: { label: 'Type', sortable: true },
+    items: { label: 'Items', sortable: true },
+    projectName: { label: 'Project', sortable: true },
+    nestingDate: { label: 'Nesting', sortable: true },
+    machiningDate: { label: 'Machining', sortable: true },
+    assemblyDate: { label: 'Assembly', sortable: true },
+    deliveryDate: { label: 'Delivery', sortable: true },
+    status: { label: 'Status', sortable: true },
+    actions: { label: 'Actions', sortable: false },
   };
 
   const SortIcon = ({ field }: { field: keyof Job }) => {
@@ -303,12 +464,23 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
       <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-medium text-black">Filters</h2>
-          <button
-            onClick={clearAllFilters}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            Clear All
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowColumnManager(true)}
+              className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              <span>Columns</span>
+            </button>
+            <button
+              onClick={clearAllFilters}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Clear All
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -436,149 +608,43 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th 
-                  onClick={() => handleSort('unit')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Unit</span>
-                    <SortIcon field="unit" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('type')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Type</span>
-                    <SortIcon field="type" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('items')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Items</span>
-                    <SortIcon field="items" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('projectName')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Project</span>
-                    <SortIcon field="projectName" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('nestingDate')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Nesting</span>
-                    <SortIcon field="nestingDate" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('machiningDate')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Machining</span>
-                    <SortIcon field="machiningDate" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('assemblyDate')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Assembly</span>
-                    <SortIcon field="assemblyDate" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('deliveryDate')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Delivery</span>
-                    <SortIcon field="deliveryDate" />
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('status')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Status</span>
-                    <SortIcon field="status" />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                {getVisibleColumns().map((columnName) => {
+                  const config = columnConfig[columnName as keyof typeof columnConfig];
+                  const width = getColumnWidth(columnName);
+                  
+                  if (columnName === 'actions') {
+                    return (
+                      <th key={columnName} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    );
+                  }
+                  
+                  return (
+                    <ResizableColumnHeader
+                      key={columnName}
+                      width={width}
+                      onResize={(newWidth) => updateSinglePreference(columnName, { widthPx: newWidth })}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    >
+                      <div 
+                        className="flex items-center space-x-1"
+                        onClick={() => config?.sortable && handleSort(columnName as keyof Job)}
+                      >
+                        <span>{config?.label || columnName}</span>
+                        {config?.sortable && <SortIcon field={columnName as keyof Job} />}
+                      </div>
+                    </ResizableColumnHeader>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedJobs.map((job) => (
                 <tr key={job.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {job.unit || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.type || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {job.items}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                    <button onClick={() => onProjectSelect?.(job.projectId)}>
-                      {job.projectName}
-                    </button>
-                  </td>
-                  <td 
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                    style={getColumnStyle(job, 'nesting')}
-                  >
-                    {job.nestingDate || '-'}
-                  </td>
-                  <td 
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                    style={getColumnStyle(job, 'machining')}
-                  >
-                    {job.machiningDate || '-'}
-                  </td>
-                  <td 
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                    style={getColumnStyle(job, 'assembly')}
-                  >
-                    {job.assemblyDate || '-'}
-                  </td>
-                  <td 
-                    className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                    style={getColumnStyle(job, 'delivery')}
-                  >
-                    {job.deliveryDate || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className="inline-flex px-2 py-1 text-xs font-medium rounded-full"
-                      style={getStatusStyle(job)}
-                    >
-                      {job.statusInfo?.displayName || job.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => onJobSelect?.(job.id)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      View
-                    </button>
-                  </td>
+                  {getVisibleColumns().map((columnName) => 
+                    renderTableCell(job, columnName)
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -595,6 +661,16 @@ const Jobs: React.FC<JobsProps> = ({ onProjectSelect, onJobSelect }) => {
           </div>
         )}
       </div>
+
+      {/* Column Manager Modal */}
+      <ColumnManager
+        columns={availableColumns.filter(col => col !== 'actions')}
+        preferences={columnPreferences}
+        onUpdatePreferences={updatePreferences}
+        onReset={resetPreferences}
+        isOpen={showColumnManager}
+        onClose={() => setShowColumnManager(false)}
+      />
     </div>
   );
 };
