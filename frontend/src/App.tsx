@@ -21,6 +21,10 @@ const AppContent: React.FC = () => {
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedProjectTab, setSelectedProjectTab] = useState<'jobs' | 'info'>('jobs');
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // Check for reset password token in URL
   useEffect(() => {
@@ -30,6 +34,11 @@ const AppContent: React.FC = () => {
       setResetToken(token);
     }
   }, []);
+
+  // Save sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   if (loading) {
     return (
@@ -136,14 +145,22 @@ const AppContent: React.FC = () => {
     setSelectedJobId(null);
   };
 
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
     <div className="min-h-screen bg-light-grey">
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={handlePageChange} 
         onProjectSelect={handleSidebarProjectSelect}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
-      <main className="ml-64 min-h-screen bg-white">
+      <main className={`min-h-screen bg-white transition-all duration-300 ${
+        sidebarCollapsed ? 'ml-16' : 'ml-64'
+      }`}>
         {renderPage()}
       </main>
     </div>

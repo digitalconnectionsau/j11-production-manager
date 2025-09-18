@@ -18,9 +18,11 @@ interface SidebarProps {
   currentPage: string;
   onPageChange: (page: string) => void;
   onProjectSelect?: (projectId: number) => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectSelect }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectSelect, collapsed, onToggleCollapse }) => {
   const { logout, user, token } = useAuth();
   const [pinnedProjects, setPinnedProjects] = useState<PinnedProject[]>([]);
   const [loadingPinned, setLoadingPinned] = useState(false);
@@ -117,34 +119,72 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   return (
-    <div className="fixed left-0 top-0 w-64 bg-black text-white h-screen flex flex-col">
+    <div className={`fixed left-0 top-0 bg-black text-white h-screen flex flex-col transition-all duration-300 ${
+      collapsed ? 'w-16' : 'w-64'
+    }`}>
       {/* Header */}
-      <div className="p-6 border-b border-light-grey border-opacity-20">
-        <div className="flex items-center space-x-3">
-          <img 
-            src="/favicon.svg" 
-            alt="J11 Logo" 
-            width="40" 
-            height="40" 
-            className="flex-shrink-0"
-          />
-          <div>
-            <h1 className="text-xl font-bold text-white leading-tight">Joinery Eleven</h1>
-            <p className="text-gray-300 text-sm -mt-0.8">Production Manager</p>
-          </div>
+      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-3' : 'p-6'}`}>
+        <div className="flex items-center justify-between">
+          {!collapsed && (
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/favicon.svg" 
+                alt="J11 Logo" 
+                width="40" 
+                height="40" 
+                className="flex-shrink-0"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-white leading-tight">Joinery Eleven</h1>
+                <p className="text-gray-300 text-sm -mt-0.8">Production Manager</p>
+              </div>
+            </div>
+          )}
+          {collapsed && (
+            <div className="flex items-center justify-center w-full">
+              <img 
+                src="/favicon.svg" 
+                alt="J11 Logo" 
+                width="32" 
+                height="32" 
+                className="flex-shrink-0"
+              />
+            </div>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className={`text-gray-300 hover:text-white transition-colors ${collapsed ? 'ml-0' : 'ml-auto'}`}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {collapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              )}
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-light-grey border-opacity-20">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <span className="text-sm font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
-            <p className="text-xs text-gray-300 capitalize">{user?.role || 'User'}</p>
-          </div>
+      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-2' : 'p-4'}`}>
+        <div className="flex items-center justify-center">
+          {!collapsed ? (
+            <div className="flex items-center space-x-3 w-full">
+              <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+                <span className="text-sm font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-300 capitalize">{user?.role || 'User'}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center">
+              <span className="text-lg font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -155,23 +195,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
             <li key={item.id}>
               <button
                 onClick={() => onPageChange(item.id)}
-                className={`w-full flex items-center space-x-3 px-6 py-3 transition-all duration-200 ${
+                className={`w-full flex items-center transition-all duration-200 ${
+                  collapsed ? 'justify-center px-3 py-3 mx-2 rounded-lg' : 'space-x-3 px-6 py-3'
+                } ${
                   currentPage === item.id
                     ? 'bg-primary text-white shadow-lg'
                     : 'text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white'
                 }`}
+                title={collapsed ? item.name : undefined}
               >
                 <span className="w-6 h-6 flex items-center justify-center text-lg">
                   <Icon name={item.icon} size={24} />
                 </span>
-                <span className="font-medium">{item.name}</span>
+                {!collapsed && <span className="font-medium">{item.name}</span>}
               </button>
             </li>
           ))}
         </ul>
 
         {/* Pinned Projects Section */}
-        {pinnedProjects.length > 0 && (
+        {!collapsed && pinnedProjects.length > 0 && (
           <div className="mt-6 px-4">
             <div className="border-t border-light-grey border-opacity-20 pt-4">
               <h3 className="text-sm font-semibold text-gray-300 mb-3 px-2">Pinned Projects</h3>
@@ -194,7 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
           </div>
         )}
 
-        {loadingPinned && (
+        {!collapsed && loadingPinned && (
           <div className="mt-6 px-6">
             <div className="border-t border-light-grey border-opacity-20 pt-4">
               <div className="text-sm text-gray-300 flex items-center space-x-2">
@@ -210,10 +253,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
       <div className="border-t border-light-grey border-opacity-20">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200"
+          className={`w-full flex items-center text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200 ${
+            collapsed ? 'justify-center px-3 py-3 mx-2 mb-2 rounded-lg' : 'space-x-3 px-6 py-3'
+          }`}
+          title={collapsed ? 'Logout' : undefined}
         >
           <Icon name="logout" size={24} />
-          <span className="font-medium">Logout</span>
+          {!collapsed && <span className="font-medium">Logout</span>}
         </button>
       </div>
     </div>
