@@ -2,12 +2,12 @@ import { Router } from 'express';
 import { db } from '../db/index.js';
 import { eq, desc } from 'drizzle-orm';
 import { jobs, projects, clients, jobStatuses } from '../db/schema.js';
-import { authenticateToken, AuthRequest } from '../middleware/auth.js';
+import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = Router();
 
 // Get all jobs
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', verifyTokenAndPermission('view_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const allJobs = await db
       .select({
@@ -51,7 +51,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get single job by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', verifyTokenAndPermission('view_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const jobId = parseInt(req.params.id);
     
@@ -102,7 +102,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new job
-router.post('/', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/', verifyTokenAndPermission('add_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const { 
       projectId, 
@@ -147,7 +147,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Update job
-router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
+router.put('/:id', verifyTokenAndPermission('edit_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const jobId = parseInt(req.params.id);
     const { 
@@ -193,7 +193,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 // Delete job
-router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
+router.delete('/:id', verifyTokenAndPermission('delete_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const jobId = parseInt(req.params.id);
 

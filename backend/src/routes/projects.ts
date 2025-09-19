@@ -2,12 +2,12 @@ import express from 'express';
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { projects, clients, jobs, jobStatuses } from '../db/schema.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = express.Router();
 
 // GET /api/projects - Get all projects with client and job counts
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', verifyTokenAndPermission('view_projects'), async (req: AuthenticatedRequest, res) => {
   try {
     const allProjects = await db
       .select({
@@ -64,7 +64,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/projects/:id - Get a specific project with full details
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', verifyTokenAndPermission('view_projects'), async (req: AuthenticatedRequest, res) => {
   try {
     const projectId = parseInt(req.params.id);
     
@@ -152,7 +152,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/projects - Create a new project
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', verifyTokenAndPermission('add_projects'), async (req: AuthenticatedRequest, res) => {
   try {
     const { name, description, status, clientId } = req.body;
 
@@ -178,7 +178,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/projects/:id - Update a project
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', verifyTokenAndPermission('edit_projects'), async (req: AuthenticatedRequest, res) => {
   try {
     const projectId = parseInt(req.params.id);
     const { name, description, status, clientId } = req.body;
@@ -207,7 +207,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/projects/:id - Delete a project
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', verifyTokenAndPermission('delete_projects'), async (req: AuthenticatedRequest, res) => {
   try {
     const projectId = parseInt(req.params.id);
 
@@ -228,7 +228,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/projects/:id/jobs - Create a new job for a project
-router.post('/:id/jobs', authenticateToken, async (req, res) => {
+router.post('/:id/jobs', verifyTokenAndPermission('add_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const projectId = parseInt(req.params.id);
     const { unit, type, items, status, nestingDate, machiningDate, assemblyDate, deliveryDate, comments } = req.body;
@@ -291,7 +291,7 @@ router.post('/:id/jobs', authenticateToken, async (req, res) => {
 });
 
 // POST /api/projects/:id/jobs/bulk - Create multiple jobs for a project
-router.post('/:id/jobs/bulk', authenticateToken, async (req, res) => {
+router.post('/:id/jobs/bulk', verifyTokenAndPermission('add_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const projectId = parseInt(req.params.id);
     const { jobs: jobsData } = req.body;

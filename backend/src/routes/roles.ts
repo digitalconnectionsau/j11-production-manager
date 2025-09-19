@@ -2,11 +2,12 @@ import express from 'express';
 import { db } from '../db/index.js';
 import { roles, permissions, rolePermissions } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
+import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = express.Router();
 
 // GET /api/roles - Get all roles
-router.get('/', async (req, res) => {
+router.get('/', verifyTokenAndPermission('view_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const rolesList = await db
       .select({
@@ -50,7 +51,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/roles/:id - Get role by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyTokenAndPermission('view_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const roleId = parseInt(req.params.id);
     const role = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
@@ -82,7 +83,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/roles - Create new role
-router.post('/', async (req, res) => {
+router.post('/', verifyTokenAndPermission('manage_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const { name, displayName, description, permissionIds = [] } = req.body;
 
@@ -143,7 +144,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/roles/:id - Update role
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyTokenAndPermission('manage_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const roleId = parseInt(req.params.id);
     const { name, displayName, description, permissionIds = [] } = req.body;
@@ -213,7 +214,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/roles/:id - Delete role
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyTokenAndPermission('manage_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const roleId = parseInt(req.params.id);
 

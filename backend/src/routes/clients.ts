@@ -2,12 +2,12 @@ import express from 'express';
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { clients, projects } from '../db/schema.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = express.Router();
 
 // GET /api/clients - Get all clients
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', verifyTokenAndPermission('view_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const allClients = await db
       .select({
@@ -48,7 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/clients/:id - Get a specific client
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', verifyTokenAndPermission('view_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const clientId = parseInt(req.params.id);
     
@@ -92,7 +92,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/clients - Create a new client
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', verifyTokenAndPermission('add_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const { name, company, email, phone, address, abn, contactPerson, notes } = req.body;
 
@@ -123,7 +123,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/clients/:id - Update a client
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', verifyTokenAndPermission('edit_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const clientId = parseInt(req.params.id);
     const { name, company, email, phone, address, abn, contactPerson, notes, isActive } = req.body;
@@ -157,7 +157,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/clients/:id - Delete a client
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const clientId = parseInt(req.params.id);
 

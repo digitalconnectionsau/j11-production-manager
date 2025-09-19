@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { eq, desc } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { jobs, projects, clients, jobStatuses } from '../db/schema.js';
+import { eq, desc, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import db from '../db/index.js';
-import { jobs, users, jobStatuses, projects, type Job, type NewJob } from '../db/schema.js';
+import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ const updateTaskSchema = z.object({
 });
 
 // GET /api/tasks - Get all jobs as tasks
-router.get('/', async (req, res) => {
+router.get('/', verifyTokenAndPermission('view_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const tasks = await db.select({
       id: jobs.id,
@@ -75,7 +76,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/tasks/:id - Get job by ID as task
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyTokenAndPermission('view_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const taskId = parseInt(req.params.id);
     if (isNaN(taskId)) {
@@ -126,7 +127,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/tasks - Create new job as task
-router.post('/', async (req, res) => {
+router.post('/', verifyTokenAndPermission('add_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const validation = createTaskSchema.safeParse(req.body);
     if (!validation.success) {
@@ -136,7 +137,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const newTask: NewJob = {
+    const newTask = {
       ...validation.data,
       statusId: validation.data.statusId || 1, // Default to first status if not provided
     };
@@ -150,7 +151,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/tasks/:id - Update job as task
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyTokenAndPermission('edit_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const taskId = parseInt(req.params.id);
     if (isNaN(taskId)) {
@@ -182,7 +183,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/tasks/:id - Delete job as task
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyTokenAndPermission('delete_jobs'), async (req: AuthenticatedRequest, res) => {
   try {
     const taskId = parseInt(req.params.id);
     if (isNaN(taskId)) {
