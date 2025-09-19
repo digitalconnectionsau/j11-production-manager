@@ -34,6 +34,10 @@ const Login: React.FC = () => {
 
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      console.log('🔍 Debug - API_URL:', API_URL);
+      console.log('🔍 Debug - Environment:', import.meta.env.MODE);
+      console.log('🔍 Debug - All env vars:', import.meta.env);
+      
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: {
