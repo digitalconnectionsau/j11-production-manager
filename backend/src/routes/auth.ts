@@ -208,8 +208,11 @@ router.post('/logout', authenticateToken, (req, res) => {
 // POST /api/auth/forgot-password - Request password reset
 router.post('/forgot-password', async (req, res) => {
   try {
+    console.log('🔐 Password reset request received for:', req.body?.email);
+    
     const validation = forgotPasswordSchema.safeParse(req.body);
     if (!validation.success) {
+      console.log('❌ Validation failed:', validation.error.errors);
       return res.status(400).json({ 
         error: 'Please provide a valid email address',
         details: validation.error.errors 
@@ -217,6 +220,7 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     const { email } = validation.data;
+    console.log('✅ Email validation passed for:', email);
 
     // Find user by email
     const user = await db.select()
@@ -224,18 +228,24 @@ router.post('/forgot-password', async (req, res) => {
       .where(eq(users.email, email))
       .limit(1);
 
+    console.log(`📊 Database query completed, found ${user.length} users`);
+
     // Always return success to prevent email enumeration
     if (user.length === 0) {
+      console.log('⚠️ User not found for email:', email);
       return res.json({ 
         message: 'If an account with that email exists, password reset instructions have been sent.' 
       });
     }
 
     const foundUser = user[0];
+    console.log('👤 User found:', foundUser.username || foundUser.email);
 
     // Generate secure reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    console.log('🔑 Reset token generated, inserting into database...');
 
     // Store reset token in database
     await db.insert(passwordResetTokens).values({
@@ -245,13 +255,17 @@ router.post('/forgot-password', async (req, res) => {
       used: false,
     });
 
+    console.log('✅ Reset token stored in database');
+
     // Send password reset email
     const userName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || 'User';
+    console.log('📧 Attempting to send email to:', email);
+    
     try {
       await sendPasswordResetEmail(email, resetToken);
-      console.log(`Password reset email sent to ${email} for user: ${userName}`);
+      console.log(`✅ Password reset email sent to ${email} for user: ${userName}`);
     } catch (error) {
-      console.error('Failed to send password reset email to:', email, error);
+      console.error('❌ Failed to send password reset email to:', email, error);
       return res.status(500).json({ 
         error: 'Failed to send reset email. Please try again later.' 
       });
@@ -261,7 +275,7 @@ router.post('/forgot-password', async (req, res) => {
       message: 'Password reset instructions have been sent to your email address.' 
     });
   } catch (error) {
-    console.error('Error in forgot-password:', error);
+    console.error('❌ Error in forgot-password:', error);
     res.status(500).json({ error: 'Failed to process password reset request' });
   }
 });
@@ -320,6 +334,67 @@ router.post('/reset-password', async (req, res) => {
   } catch (error) {
     console.error('Error in reset-password:', error);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// POST /api/auth/request-password-reset - Alias for forgot-password (backward compatibility)
+router.post('/request-password-reset', async (req, res) => {
+  try {
+    const validation = forgotPasswordSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Please provide a valid email address',
+        details: validation.error.errors 
+      });
+    }
+
+    const { email } = validation.data;
+
+    // Find user by email
+    const user = await db.select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    // Always return success to prevent email enumeration
+    if (user.length === 0) {
+      return res.json({ 
+        message: 'If an account with that email exists, password reset instructions have been sent.' 
+      });
+    }
+
+    const foundUser = user[0];
+
+    // Generate secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Store reset token in database
+    await db.insert(passwordResetTokens).values({
+      userId: foundUser.id,
+      token: resetToken,
+      expiresAt,
+      used: false,
+    });
+
+    // Send password reset email
+    const userName = `${foundUser.firstName || ''} ${foundUser.lastName || ''}`.trim() || foundUser.username || 'User';
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+      console.log(`✅ Password reset email sent to ${email} for user: ${userName}`);
+    } catch (error) {
+      console.error('❌ Failed to send password reset email to:', email, error);
+      return res.status(500).json({ 
+        error: 'Failed to send reset email. Please try again later.' 
+      });
+    }
+
+    res.json({ 
+      message: 'Password reset instructions have been sent to your email address.' 
+    });
+  } catch (error) {
+    console.error('❌ Error in request-password-reset:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
   }
 });
 
