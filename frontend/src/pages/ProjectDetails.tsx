@@ -97,17 +97,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Helper function to parse DD/MM/YYYY format dates
-  const parseDate = (dateString: string): Date | null => {
-    if (!dateString) return null;
-    const parts = dateString.split('/');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JavaScript
-    const year = parseInt(parts[2], 10);
-    return new Date(year, month, day);
-  };
-
   // Helper function to format date for display
   const formatDate = (dateString: string): string => {
     if (!dateString) return '-';
