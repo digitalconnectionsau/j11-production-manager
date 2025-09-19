@@ -38,8 +38,20 @@ router.post('/login', async (req, res) => {
   try {
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
+      const errors = validation.error.errors;
+      let message = 'Please check your input';
+      
+      // Provide specific validation feedback
+      if (errors.find(e => e.path[0] === 'email')) {
+        message = 'Please enter a valid email address or username';
+      }
+      if (errors.find(e => e.path[0] === 'password')) {
+        message = 'Password is required';
+      }
+      
       return res.status(400).json({ 
-        error: 'Validation failed', 
+        error: message,
+        field: errors[0]?.path[0], // Which field has the error
         details: validation.error.errors 
       });
     }
@@ -58,7 +70,10 @@ router.post('/login', async (req, res) => {
       .limit(1);
 
     if (user.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        error: 'No account found with this email or username',
+        suggestion: 'Please check your email/username or create a new account'
+      });
     }
 
     const foundUser = user[0];
@@ -67,16 +82,27 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, foundUser.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        error: 'Incorrect password',
+        suggestion: 'Please check your password or use "Forgot Password" to reset it'
+      });
     }
 
     // Check if user account is blocked or inactive
     if (foundUser.isBlocked) {
-      return res.status(401).json({ error: 'Your account has been blocked. Please contact an administrator.' });
+      return res.status(403).json({ 
+        error: 'Account blocked',
+        message: 'Your account has been blocked due to security reasons. Please contact an administrator.',
+        contactInfo: 'Contact support for account recovery'
+      });
     }
 
     if (!foundUser.isActive) {
-      return res.status(401).json({ error: 'Your account is inactive. Please contact an administrator.' });
+      return res.status(403).json({ 
+        error: 'Account inactive',
+        message: 'Your account is currently inactive. Please contact an administrator to activate your account.',
+        contactInfo: 'Contact support for account activation'
+      });
     }
 
     // Generate JWT token
@@ -108,13 +134,73 @@ router.post('/register', async (req, res) => {
   try {
     const validation = registerSchema.safeParse(req.body);
     if (!validation.success) {
+      const errors = validation.error.errors;
+      const fieldErrors: { [key: string]: string } = {};
+      
+      // Create user-friendly error messages for each field
+      errors.forEach(error => {
+        const field = error.path[0] as string;
+        switch (field) {
+          case 'firstName':
+            fieldErrors[field] = 'First name is required';
+            break;
+          case 'lastName':
+            fieldErrors[field] = 'Last name is required';
+            break;
+          case 'email':
+            fieldErrors[field] = error.code === 'invalid_string' 
+              ? 'Please enter a valid email address' 
+              : 'Email is required';
+            break;
+          case 'password':
+            fieldErrors[field] = 'Password must be at least 6 characters long';
+            break;
+          case 'username':
+            fieldErrors[field] = 'Username is required';
+            break;
+          default:
+            fieldErrors[field] = error.message;
+        }
+      });
+      
       return res.status(400).json({ 
-        error: 'Validation failed', 
+        error: 'Please check the following fields',
+        fieldErrors,
         details: validation.error.errors 
       });
     }
 
     const { firstName, lastName, email, password, username } = validation.data;
+
+    // Check if email already exists
+    const existingUser = await db.select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({ 
+        error: 'Email already registered',
+        message: 'An account with this email address already exists. Please use a different email or try logging in.',
+        suggestion: 'Try logging in or use the "Forgot Password" feature'
+      });
+    }
+
+    // Check if username already exists (if provided)
+    if (username) {
+      const existingUsername = await db.select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUsername.length > 0) {
+        return res.status(409).json({ 
+          error: 'Username already taken',
+          message: 'This username is already in use. Please choose a different username.',
+          field: 'username'
+        });
+      }
+    }
 
     // Hash password
     const saltRounds = 12;
@@ -146,7 +232,7 @@ router.post('/register', async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Registration successful',
+      message: 'Registration successful! Welcome to J11 Production Manager.',
       token,
       user: {
         id: createdUser.id,
@@ -157,10 +243,29 @@ router.post('/register', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Error during registration:', error);
+    
+    // Handle database constraint errors
     if (error.code === '23505') { // Unique constraint violation
-      return res.status(409).json({ error: 'Email already exists' });
+      if (error.constraint?.includes('email')) {
+        return res.status(409).json({ 
+          error: 'Email already registered',
+          message: 'An account with this email address already exists.',
+          field: 'email'
+        });
+      }
+      if (error.constraint?.includes('username')) {
+        return res.status(409).json({ 
+          error: 'Username already taken',
+          message: 'This username is already in use.',
+          field: 'username'
+        });
+      }
     }
-    res.status(500).json({ error: 'Registration failed' });
+    
+    res.status(500).json({ 
+      error: 'Registration failed',
+      message: 'Unable to create account. Please try again later.'
+    });
   }
 });
 
@@ -213,8 +318,17 @@ router.post('/forgot-password', async (req, res) => {
     const validation = forgotPasswordSchema.safeParse(req.body);
     if (!validation.success) {
       console.log('❌ Validation failed:', validation.error.errors);
+      const errors = validation.error.errors;
+      const emailError = errors.find(e => e.path[0] === 'email');
+      
+      let message = 'Please provide a valid email address';
+      if (emailError?.code === 'invalid_string') {
+        message = 'Please enter a valid email address format (e.g., user@example.com)';
+      }
+      
       return res.status(400).json({ 
-        error: 'Please provide a valid email address',
+        error: message,
+        field: 'email',
         details: validation.error.errors 
       });
     }
@@ -234,12 +348,30 @@ router.post('/forgot-password', async (req, res) => {
     if (user.length === 0) {
       console.log('⚠️ User not found for email:', email);
       return res.json({ 
-        message: 'If an account with that email exists, password reset instructions have been sent.' 
+        message: 'If an account with that email exists, password reset instructions have been sent.',
+        info: 'Please check your email (including spam folder) for reset instructions.'
       });
     }
 
     const foundUser = user[0];
     console.log('👤 User found:', foundUser.username || foundUser.email);
+
+    // Check if user account is active
+    if (foundUser.isBlocked) {
+      return res.status(403).json({
+        error: 'Account blocked',
+        message: 'Your account has been blocked. Please contact an administrator for assistance.',
+        contactInfo: 'Contact support for account recovery'
+      });
+    }
+
+    if (!foundUser.isActive) {
+      return res.status(403).json({
+        error: 'Account inactive',
+        message: 'Your account is currently inactive. Please contact an administrator.',
+        contactInfo: 'Contact support for account activation'
+      });
+    }
 
     // Generate secure reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -267,16 +399,23 @@ router.post('/forgot-password', async (req, res) => {
     } catch (error) {
       console.error('❌ Failed to send password reset email to:', email, error);
       return res.status(500).json({ 
-        error: 'Failed to send reset email. Please try again later.' 
+        error: 'Email delivery failed',
+        message: 'Unable to send reset email at this time. Please try again in a few minutes.',
+        suggestion: 'If the problem persists, please contact support'
       });
     }
 
     res.json({ 
-      message: 'Password reset instructions have been sent to your email address.' 
+      message: 'Password reset instructions have been sent to your email address.',
+      info: 'Please check your email (including spam folder) and follow the instructions to reset your password.',
+      expiresIn: '1 hour'
     });
   } catch (error) {
     console.error('❌ Error in forgot-password:', error);
-    res.status(500).json({ error: 'Failed to process password reset request' });
+    res.status(500).json({ 
+      error: 'Request failed',
+      message: 'Unable to process password reset request. Please try again later.'
+    });
   }
 });
 
@@ -285,8 +424,24 @@ router.post('/reset-password', async (req, res) => {
   try {
     const validation = resetPasswordSchema.safeParse(req.body);
     if (!validation.success) {
+      const errors = validation.error.errors;
+      const tokenError = errors.find(e => e.path[0] === 'token');
+      const passwordError = errors.find(e => e.path[0] === 'password');
+      
+      let message = 'Invalid request data';
+      let field = 'general';
+      
+      if (tokenError) {
+        message = 'Reset token is required and must be valid';
+        field = 'token';
+      } else if (passwordError) {
+        message = 'Password must be at least 6 characters long';
+        field = 'password';
+      }
+      
       return res.status(400).json({ 
-        error: 'Invalid request data',
+        error: message,
+        field,
         details: validation.error.errors 
       });
     }
@@ -307,12 +462,60 @@ router.post('/reset-password', async (req, res) => {
       .limit(1);
 
     if (resetRecord.length === 0) {
+      // Check if token exists but is expired or used
+      const tokenCheck = await db.select({
+        used: passwordResetTokens.used,
+        expiresAt: passwordResetTokens.expiresAt
+      })
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token))
+        .limit(1);
+
+      if (tokenCheck.length > 0) {
+        const tokenInfo = tokenCheck[0];
+        if (tokenInfo.used) {
+          return res.status(400).json({ 
+            error: 'Reset link already used',
+            message: 'This reset link has already been used. Each link can only be used once.',
+            field: 'token',
+            suggestion: 'If you need to reset your password again, please request a new reset link'
+          });
+        } else if (new Date() > tokenInfo.expiresAt) {
+          return res.status(400).json({ 
+            error: 'Reset link expired',
+            message: 'This reset link has expired. Reset links are valid for 1 hour.',
+            field: 'token',
+            suggestion: 'Please request a new password reset link'
+          });
+        }
+      }
+      
       return res.status(400).json({ 
-        error: 'Invalid or expired reset token' 
+        error: 'Invalid reset link',
+        message: 'This reset link is not valid. Please request a new password reset.',
+        field: 'token',
+        suggestion: 'Click "Forgot Password" to get a new reset link'
       });
     }
 
     const { password_reset_tokens: resetToken, users: user } = resetRecord[0];
+
+    // Check user account status
+    if (user.isBlocked) {
+      return res.status(403).json({
+        error: 'Account blocked',
+        message: 'Your account has been blocked. Please contact an administrator for assistance.',
+        contactInfo: 'Contact support for account recovery'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        error: 'Account inactive',
+        message: 'Your account is currently inactive. Please contact an administrator.',
+        contactInfo: 'Contact support for account activation'
+      });
+    }
 
     // Hash new password
     const saltRounds = 12;
@@ -329,11 +532,16 @@ router.post('/reset-password', async (req, res) => {
       .where(eq(passwordResetTokens.id, resetToken.id));
 
     res.json({ 
-      message: 'Password has been successfully reset. You can now log in with your new password.' 
+      message: 'Password has been reset successfully!',
+      info: 'You can now log in with your new password.',
+      redirectTo: '/login'
     });
   } catch (error) {
     console.error('Error in reset-password:', error);
-    res.status(500).json({ error: 'Failed to reset password' });
+    res.status(500).json({ 
+      error: 'Password reset failed',
+      message: 'Unable to reset password at this time. Please try again or request a new reset link.'
+    });
   }
 });
 
