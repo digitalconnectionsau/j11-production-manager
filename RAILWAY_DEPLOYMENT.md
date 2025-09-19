@@ -40,7 +40,7 @@ Repeat similar steps for frontend:
 2. Set root directory to `/frontend`
 3. Set environment variables:
    ```
-   VITE_API_URL=https://your-backend-domain.railway.app
+   VITE_API_URL=https://productionmanager-production.up.railway.app
    ```
 
 ### 6. Database Migration (After First Deploy)
@@ -104,8 +104,32 @@ After successful deployment, your PostgreSQL database will have:
 - `projects` table
 - `project_tasks` table (junction)
 
+## Current Production URLs
+- **Backend**: https://productionmanager-production.up.railway.app
+- **Frontend**: https://j11-frontend-production.up.railway.app
+
+## Required Environment Variables
+
+### Frontend Service (Railway Dashboard)
+```
+VITE_API_URL=https://productionmanager-production.up.railway.app
+```
+
+### Backend Service (Railway Dashboard)
+```
+NODE_ENV=production
+PORT=3001
+FRONTEND_URL=https://j11-frontend-production.up.railway.app
+JWT_SECRET=your-jwt-secret-here
+EMAIL_MODE=production
+SMTP_PASS=your-smtp2go-api-key
+FROM_EMAIL=noreply@digitalconnections.au
+DATABASE_URL=(automatically provided by Railway PostgreSQL)
+```
+
 ## Troubleshooting
 - Check Railway logs for build/runtime errors
 - Verify all environment variables are set
 - Ensure DATABASE_URL is connected
 - Check CORS settings if frontend can't connect to backend
+- **Route not found errors**: Verify VITE_API_URL points to correct backend URL
