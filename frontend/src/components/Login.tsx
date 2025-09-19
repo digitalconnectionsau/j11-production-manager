@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiRequest, API_ENDPOINTS } from '../utils/api';
+import Button from './ui/Button';
+import ErrorDisplay from './ErrorDisplay';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -33,28 +36,19 @@ const Login: React.FC = () => {
     setIsResetting(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+      await apiRequest(API_ENDPOINTS.forgotPassword, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email: resetEmail }),
       });
 
-      if (response.ok) {
-        setResetMessage('Password reset instructions have been sent to your email address.');
-        setResetEmail('');
-        setTimeout(() => {
-          setShowForgotPassword(false);
-          setResetMessage('');
-        }, 3000);
-      } else {
-        const data = await response.json();
-        setResetMessage(data.error || 'Failed to send reset email. Please try again.');
-      }
-    } catch (err) {
-      setResetMessage('Network error. Please check your connection and try again.');
+      setResetMessage('Password reset instructions have been sent to your email address.');
+      setResetEmail('');
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setResetMessage('');
+      }, 3000);
+    } catch (err: any) {
+      setResetMessage(err.message || 'Failed to send reset email. Please try again.');
     } finally {
       setIsResetting(false);
     }
@@ -121,25 +115,23 @@ const Login: React.FC = () => {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-red-600 text-sm">{error}</p>
-                  </div>
+                  <ErrorDisplay 
+                    type="error" 
+                    message={error}
+                    onDismiss={() => setError('')}
+                  />
                 )}
 
-                <button
+                <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-primary hover:bg-primary hover:opacity-90 disabled:bg-gray-400 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                  variant="primary"
+                  size="lg"
+                  loading={isLoading}
+                  className="w-full"
                 >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Signing in...
-                    </div>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
+                  Sign In
+                </Button>
               </form>
             </>
           ) : (
@@ -175,47 +167,35 @@ const Login: React.FC = () => {
                 </div>
 
                 {resetMessage && (
-                  <div className={`border rounded-lg p-3 ${
-                    resetMessage.includes('sent') 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-red-50 border-red-200'
-                  }`}>
-                    <p className={`text-sm ${
-                      resetMessage.includes('sent') 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
-                    }`}>
-                      {resetMessage}
-                    </p>
-                  </div>
+                  <ErrorDisplay 
+                    type={resetMessage.includes('sent') ? 'info' : 'error'}
+                    message={resetMessage}
+                    onDismiss={() => setResetMessage('')}
+                  />
                 )}
 
                 <div className="flex space-x-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => {
                       setShowForgotPassword(false);
                       setResetMessage('');
                       setResetEmail('');
                     }}
-                    className="flex-1 py-3 px-4 bg-light-grey hover:bg-gray-300 text-charcoal font-semibold rounded-lg transition-all"
+                    variant="secondary"
+                    className="flex-1"
                   >
                     Back to Login
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={isResetting}
-                    className="flex-1 py-3 px-4 bg-primary hover:opacity-90 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all"
+                    variant="primary"
+                    loading={isResetting}
+                    className="flex-1"
                   >
-                    {isResetting ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Sending...
-                      </div>
-                    ) : (
-                      'Send Reset Email'
-                    )}
-                  </button>
+                    Send Reset Email
+                  </Button>
                 </div>
               </form>
             </>

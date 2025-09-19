@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiRequest, API_ENDPOINTS } from '../utils/api';
 
 interface AddJobModalProps {
   isOpen: boolean;
@@ -49,7 +50,6 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   
   const { token } = useAuth();
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Load lead times, job statuses, and holidays when modal opens
   useEffect(() => {
@@ -60,32 +60,16 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
 
   const loadConfigurationData = async () => {
     try {
-      // Load lead times
-      const leadTimesResponse = await fetch(`${API_URL}/api/lead-times`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (leadTimesResponse.ok) {
-        const leadTimesData = await leadTimesResponse.json();
-        setLeadTimes(leadTimesData);
-      }
+      // Load lead times, job statuses, and holidays
+      const [leadTimesData, statusesData, holidaysData] = await Promise.all([
+        apiRequest(API_ENDPOINTS.leadTimes),
+        apiRequest(API_ENDPOINTS.jobStatuses),
+        apiRequest(API_ENDPOINTS.holidays)
+      ]);
 
-      // Load job statuses
-      const statusesResponse = await fetch(`${API_URL}/api/job-statuses`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (statusesResponse.ok) {
-        const statusesData = await statusesResponse.json();
-        setJobStatuses(statusesData);
-      }
-
-      // Load holidays
-      const holidaysResponse = await fetch(`${API_URL}/api/holidays`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (holidaysResponse.ok) {
-        const holidaysData = await holidaysResponse.json();
-        setHolidays(holidaysData);
-      }
+      setLeadTimes(leadTimesData.data);
+      setJobStatuses(statusesData.data);
+      setHolidays(holidaysData.data);
     } catch (err) {
       console.error('Error loading configuration data:', err);
     }
@@ -260,18 +244,13 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
         comments: formData.comments || null
       };
 
-      const response = await fetch(`${API_URL}/api/projects/${projectId}/jobs`, {
+      await apiRequest(`/api/projects/${projectId}/jobs`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(jobData),
+        body: JSON.stringify(jobData)
       });
 
-      if (response.ok) {
-        onJobAdded();
-        onClose();
+      onJobAdded();
+      onClose();
         // Reset form
         setFormData({
           unit: '',
@@ -284,10 +263,6 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
           deliveryDate: '',
           comments: ''
         });
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to create job');
-      }
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {

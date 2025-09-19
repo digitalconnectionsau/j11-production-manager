@@ -4,10 +4,9 @@ import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { DataTable } from '../components/DataTable';
 import type { TableColumn, FilterConfig, SortConfig } from '../components/DataTable';
 import { createStatusRenderer, createDateRenderer } from '../components/DataTable/utils';
-import { apiRequest, API_ENDPOINTS } from '../utils/api';
 import Button from '../components/ui/Button';
-import ErrorDisplay from '../components/ErrorDisplay';
-import ProtectedRoute from '../components/ProtectedRoute';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface Job {
   id: number;
@@ -64,12 +63,7 @@ interface JobStatus {
   isFinal: boolean;
 }
 
-interface JobsProps {
-  onProjectSelect: (projectId: number, tab?: "jobs" | "info") => void;
-  onJobSelect: (jobId: number) => void;
-}
-
-function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
+function Jobs() {
   const { token } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -131,18 +125,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       key: 'projectName',
       label: 'Project',
       sortable: true,
-      width: 180,
-      render: (value: string, row: Job) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onProjectSelect(row.projectId);
-          }}
-          className="text-blue-600 hover:text-blue-800 hover:underline text-left"
-        >
-          {value}
-        </button>
-      )
+      width: 180
     },
     {
       key: 'status',
@@ -153,7 +136,6 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
         if (row.statusInfo) {
           return (
             <span
-              onClick={(e) => handleStatusClick(e, row)}
               style={{
                 backgroundColor: row.statusInfo.backgroundColor,
                 color: row.statusInfo.color,
@@ -163,10 +145,8 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
                 fontWeight: '500',
                 textAlign: 'center',
                 display: 'inline-block',
-                minWidth: '80px',
-                cursor: 'pointer'
+                minWidth: '80px'
               }}
-              title="Click to change status"
             >
               {row.statusInfo.displayName}
             </span>
@@ -280,26 +260,15 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
   const getDateCellStyle = (columnKey: string, row: Job) => {
     if (!row.statusInfo?.targetColumns) return {};
     
-    // Map column keys to the targeting names used in the backend
-    const columnMapping: Record<string, string> = {
-      'nestingDate': 'nesting',
-      'machiningDate': 'machining', 
-      'assemblyDate': 'assembly',
-      'deliveryDate': 'delivery'
-    };
-    
-    const targetColumnName = columnMapping[columnKey];
-    if (!targetColumnName) return {};
-    
     const targetColumn = row.statusInfo.targetColumns.find(
-      target => target.column === targetColumnName
+      target => target.column === columnKey
     );
     
     if (targetColumn) {
       return {
         backgroundColor: targetColumn.color,
         fontWeight: '600',
-        color: '#ffffff' // Use white text for better contrast like the original
+        color: '#1f2937'
       };
     }
     
@@ -312,17 +281,36 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       try {
         setLoading(true);
         
-        const [jobsResponse, clientsResponse, projectsResponse, statusesResponse] = await Promise.all([
-          apiRequest(API_ENDPOINTS.jobs),
-          apiRequest(API_ENDPOINTS.clients),
-          apiRequest(API_ENDPOINTS.projects),
-          apiRequest(API_ENDPOINTS.jobStatuses)
+        const [jobsRes, clientsRes, projectsRes, statusesRes] = await Promise.all([
+          fetch(`${API_URL}/api/jobs`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${API_URL}/api/clients`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${API_URL}/api/projects`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${API_URL}/api/job-statuses`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
         ]);
 
-        setJobs(jobsResponse.data);
-        setClients(clientsResponse.data);
-        setProjects(projectsResponse.data);
-        setJobStatuses(statusesResponse.data);
+        if (!jobsRes.ok || !clientsRes.ok || !projectsRes.ok || !statusesRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const [jobsData, clientsData, projectsData, statusesData] = await Promise.all([
+          jobsRes.json(),
+          clientsRes.json(),
+          projectsRes.json(),
+          statusesRes.json()
+        ]);
+
+        setJobs(jobsData);
+        setClients(clientsData);
+        setProjects(projectsData);
+        setJobStatuses(statusesData);
         
       } catch (err) {
         console.error('Error loading data:', err);
@@ -337,37 +325,10 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     }
   }, [token]);
 
-  // Handle status click to cycle through statuses
-  const handleStatusClick = async (e: React.MouseEvent, job: Job) => {
-    e.stopPropagation(); // Prevent row click
-    
-    try {
-      // Get next status logic (simplified - you might want to get this from job statuses)
-      const statusOrder = ['not-assigned', 'in-progress', 'completed'];
-      const currentIndex = statusOrder.indexOf(job.status);
-      const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-      
-      // Update job status
-      await apiRequest(`/api/jobs/${job.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...job, status: nextStatus })
-      });
-      
-      // Reload data to reflect changes
-      const [jobsResponse] = await Promise.all([
-        apiRequest(API_ENDPOINTS.jobs)
-      ]);
-      setJobs(jobsResponse.data);
-      
-    } catch (err) {
-      console.error('Error updating job status:', err);
-      setError('Failed to update job status');
-    }
-  };
-
   // Handle row click
   const handleRowClick = (job: Job) => {
-    onJobSelect(job.id);
+    // Navigate to job details or open modal
+    console.log('Job clicked:', job);
   };
 
   // Apply filters to jobs data
@@ -428,43 +389,32 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
   }, [jobs, filters]);
 
   return (
-    <ProtectedRoute>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
-          <Button variant="primary">
-            Add New Job
-          </Button>
-        </div>
-
-        {error && (
-          <ErrorDisplay 
-            type="error" 
-            message={error}
-            onRetry={() => window.location.reload()}
-            className="mb-4"
-          />
-        )}
-
-        <DataTable
-          data={filteredJobs}
-          columns={columns}
-          loading={loading}
-          error={error}
-          filters={filterConfigs}
-          onFiltersChange={setFilters}
-          defaultSort={sort}
-          onSortChange={setSort}
-          onRowClick={handleRowClick}
-          columnPreferences={preferences}
-          onColumnPreferencesChange={updatePreferences}
-          resizableColumns={true}
-          className="mb-8"
-          emptyMessage="No jobs found"
-          emptySubMessage="Try adjusting your filters or create a new job"
-        />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+        <Button variant="primary">
+          Add New Job
+        </Button>
       </div>
-    </ProtectedRoute>
+
+      <DataTable
+        data={filteredJobs}
+        columns={columns}
+        loading={loading}
+        error={error}
+        filters={filterConfigs}
+        onFiltersChange={setFilters}
+        defaultSort={sort}
+        onSortChange={setSort}
+        onRowClick={handleRowClick}
+        columnPreferences={preferences}
+        onColumnPreferencesChange={updatePreferences}
+        resizableColumns={true}
+        className="mb-8"
+        emptyMessage="No jobs found"
+        emptySubMessage="Try adjusting your filters or create a new job"
+      />
+    </div>
   );
 }
 

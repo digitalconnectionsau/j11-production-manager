@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiRequest, API_ENDPOINTS } from '../utils/api';
 
 export interface ColumnPreference {
   id?: number;
@@ -36,16 +36,11 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.get(`${API_URL}/api/user-column-preferences/${tableName}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`);
       setPreferences(response.data);
     } catch (err: any) {
       console.error('Error loading column preferences:', err);
-      setError(err.response?.data?.error || 'Failed to load column preferences');
+      setError(err.message || 'Failed to load column preferences');
     } finally {
       setLoading(false);
     }
@@ -55,18 +50,15 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
     try {
       setError(null);
       
-      const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      await axios.put(`${API_URL}/api/user-column-preferences/${tableName}`, {
-        preferences: newPreferences
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`, {
+        method: 'PUT',
+        body: JSON.stringify({ preferences: newPreferences })
       });
       
       setPreferences(newPreferences);
     } catch (err: any) {
       console.error('Error updating column preferences:', err);
-      setError(err.response?.data?.error || 'Failed to update column preferences');
+      setError(err.message || 'Failed to update column preferences');
       throw err;
     }
   };
@@ -75,10 +67,9 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
     try {
       setError(null);
       
-      const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      await axios.patch(`${API_URL}/api/user-column-preferences/${tableName}/${columnName}`, updates, {
-        headers: { Authorization: `Bearer ${token}` }
+      await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}/${columnName}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates)
       });
       
       // Update local state
@@ -110,17 +101,15 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
     try {
       setError(null);
       
-      const token = localStorage.getItem('token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      await axios.delete(`${API_URL}/api/user-column-preferences/${tableName}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`, {
+        method: 'DELETE'
       });
       
       setPreferences([]);
       await loadPreferences(); // Reload to get defaults
     } catch (err: any) {
       console.error('Error resetting column preferences:', err);
-      setError(err.response?.data?.error || 'Failed to reset column preferences');
+      setError(err.message || 'Failed to reset column preferences');
       throw err;
     }
   };

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiRequest, API_ENDPOINTS } from '../utils/api';
 
 interface User {
   id: number;
@@ -38,10 +39,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  
-  console.log('🔗 Frontend using API_URL:', API_URL);
-
   useEffect(() => {
     // Check for stored token on app load
     const storedToken = localStorage.getItem('auth_token');
@@ -57,31 +54,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      
+      const response = await apiRequest(API_ENDPOINTS.login, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setToken(data.token);
-        setUser(data.user);
-        
-        // Store in localStorage
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('auth_user', JSON.stringify(data.user));
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.error || 'Login failed' };
-      }
-    } catch (error) {
+      setToken(response.data.token);
+      setUser(response.data.user);
+      
+      // Store in localStorage
+      localStorage.setItem('auth_token', response.data.token);
+      localStorage.setItem('auth_user', JSON.stringify(response.data.user));
+      
+      return { success: true };
+    } catch (error: any) {
       console.error('Login error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      return { success: false, error: error.message || 'Login failed' };
     } finally {
       setLoading(false);
     }

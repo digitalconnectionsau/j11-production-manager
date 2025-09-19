@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { formatDate } from '../utils/dateUtils';
 import AddProjectModal from '../components/AddProjectModal';
 
 interface Contact {
@@ -327,7 +328,7 @@ const ProjectsTab: React.FC<{ client: Client; onAddProject: () => void }> = ({ c
                       {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
                     </span>
                     <span className="text-sm text-charcoal">
-                      Created: {new Date(project.createdAt).toLocaleDateString('en-AU')}
+                      Created: {formatDate(project.createdAt)}
                     </span>
                   </div>
                 </div>

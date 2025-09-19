@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import AddJobModal from '../components/AddJobModal';
 import BulkUploadModal from '../components/BulkUploadModal';
 
@@ -110,8 +111,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   // Helper function to format date for display
   const formatDate = (dateString: string): string => {
     if (!dateString) return '-';
-    const date = parseDate(dateString);
-    return date && !isNaN(date.getTime()) ? date.toLocaleDateString() : '-';
+    return formatDateUtil(dateString) || '-';
   };
 
   // Fetch project details
@@ -582,13 +582,13 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-1">Created</h4>
                   <p className="text-sm text-gray-900">
-                    {new Date(project.createdAt).toLocaleDateString()}
+                    {formatDateUtil(project.createdAt)}
                   </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-1">Last Updated</h4>
                   <p className="text-sm text-gray-900">
-                    {new Date(project.updatedAt).toLocaleDateString()}
+                    {formatDateUtil(project.updatedAt)}
                   </p>
                 </div>
               </div>

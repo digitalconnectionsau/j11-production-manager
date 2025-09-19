@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Button from '../components/ui/Button';
 
 const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
@@ -49,9 +50,9 @@ const Reports: React.FC = () => {
               <option key={period} value={period}>{period}</option>
             ))}
           </select>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+          <Button variant="primary">
             Export PDF
-          </button>
+          </Button>
         </div>
       </div>
 
