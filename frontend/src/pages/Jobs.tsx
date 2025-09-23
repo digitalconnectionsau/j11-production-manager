@@ -279,7 +279,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
 
   // Get cell styling for date columns based on status targeting
   const getDateCellStyle = (columnKey: string, row: Job) => {
-    if (!row.statusInfo?.targetColumns) return {};
+    if (!row.statusInfo?.targetColumns || !Array.isArray(row.statusInfo.targetColumns)) return {};
     
     // Map column keys to the targeting names used in the backend
     const columnMapping: Record<string, string> = {
@@ -293,10 +293,10 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     if (!targetColumnName) return {};
     
     const targetColumn = row.statusInfo.targetColumns.find(
-      target => target.column.toLowerCase() === targetColumnName.toLowerCase()
+      target => target && target.column && target.column.toLowerCase() === targetColumnName.toLowerCase()
     );
     
-    if (targetColumn) {
+    if (targetColumn && targetColumn.color) {
       return {
         backgroundColor: targetColumn.color,
         fontWeight: '600',
