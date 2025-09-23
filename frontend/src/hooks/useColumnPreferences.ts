@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiRequest, API_ENDPOINTS } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface ColumnPreference {
   id?: number;
@@ -25,6 +26,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
   const [preferences, setPreferences] = useState<ColumnPreference[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
   // Load preferences on mount
   useEffect(() => {
@@ -36,7 +38,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       setLoading(true);
       setError(null);
       
-      const response = await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`);
+      const response = await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`, {}, token || '');
       setPreferences(response.data);
     } catch (err: any) {
       console.error('Error loading column preferences:', err);
@@ -53,7 +55,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`, {
         method: 'PUT',
         body: JSON.stringify({ preferences: newPreferences })
-      });
+      }, token || '');
       
       setPreferences(newPreferences);
     } catch (err: any) {
@@ -70,7 +72,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}/${columnName}`, {
         method: 'PATCH',
         body: JSON.stringify(updates)
-      });
+      }, token || '');
       
       // Update local state
       setPreferences(prev => {
@@ -103,7 +105,7 @@ export function useColumnPreferences(tableName: string): UseColumnPreferencesRet
       
       await apiRequest(`${API_ENDPOINTS.userColumnPreferences}/${tableName}`, {
         method: 'DELETE'
-      });
+      }, token || '');
       
       setPreferences([]);
       await loadPreferences(); // Reload to get defaults

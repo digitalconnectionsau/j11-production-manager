@@ -313,10 +313,10 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
         setLoading(true);
         
         const [jobsResponse, clientsResponse, projectsResponse, statusesResponse] = await Promise.all([
-          apiRequest(API_ENDPOINTS.jobs),
-          apiRequest(API_ENDPOINTS.clients),
-          apiRequest(API_ENDPOINTS.projects),
-          apiRequest(API_ENDPOINTS.jobStatuses)
+          apiRequest(API_ENDPOINTS.jobs, {}, token || ''),
+          apiRequest(API_ENDPOINTS.clients, {}, token || ''),
+          apiRequest(API_ENDPOINTS.projects, {}, token || ''),
+          apiRequest(API_ENDPOINTS.jobStatuses, {}, token || '')
         ]);
 
         setJobs(jobsResponse.data);
@@ -351,11 +351,11 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       await apiRequest(`/api/jobs/${job.id}`, {
         method: 'PUT',
         body: JSON.stringify({ ...job, status: nextStatus })
-      });
+      }, token || '');
       
       // Reload data to reflect changes
       const [jobsResponse] = await Promise.all([
-        apiRequest(API_ENDPOINTS.jobs)
+        apiRequest(API_ENDPOINTS.jobs, {}, token || '')
       ]);
       setJobs(jobsResponse.data);
       

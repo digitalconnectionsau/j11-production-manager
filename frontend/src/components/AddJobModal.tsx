@@ -62,9 +62,9 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
     try {
       // Load lead times, job statuses, and holidays
       const [leadTimesData, statusesData, holidaysData] = await Promise.all([
-        apiRequest(API_ENDPOINTS.leadTimes),
-        apiRequest(API_ENDPOINTS.jobStatuses),
-        apiRequest(API_ENDPOINTS.holidays)
+        apiRequest(API_ENDPOINTS.leadTimes, {}, token || ''),
+        apiRequest(API_ENDPOINTS.jobStatuses, {}, token || ''),
+        apiRequest(API_ENDPOINTS.holidays, {}, token || '')
       ]);
 
       setLeadTimes(leadTimesData.data);
