@@ -35,6 +35,7 @@ router.get('/', verifyTokenAndPermission('view_jobs'), async (req: Authenticated
           backgroundColor: jobStatuses.backgroundColor,
           isDefault: jobStatuses.isDefault,
           isFinal: jobStatuses.isFinal,
+          targetColumns: jobStatuses.targetColumns,
         },
       })
       .from(jobs)
@@ -81,6 +82,7 @@ router.get('/:id', verifyTokenAndPermission('view_jobs'), async (req: Authentica
           backgroundColor: jobStatuses.backgroundColor,
           isDefault: jobStatuses.isDefault,
           isFinal: jobStatuses.isFinal,
+          targetColumns: jobStatuses.targetColumns,
         },
       })
       .from(jobs)
