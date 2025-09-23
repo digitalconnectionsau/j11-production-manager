@@ -117,9 +117,9 @@ function DataTable<T extends Record<string, any>>({
     
     // Sort columns by preference order and filter visible ones
     return columnPreferences
-      .filter(pref => pref.visible !== false)
-      .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map(pref => columns.find(col => col.key === pref.key))
+      .filter(pref => pref.isVisible !== false)
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
+      .map(pref => columns.find(col => col.key === pref.columnName))
       .filter(Boolean) as TableColumn<T>[];
   }, [columns, columnPreferences]);
 
@@ -282,7 +282,7 @@ function DataTable<T extends Record<string, any>>({
                   </th>
                 )}
                 {visibleColumns.map((column) => {
-                  const preference = columnPreferences.find(p => p.key === column.key);
+                  const preference = columnPreferences.find(p => p.columnName === column.key);
                   const width = preference?.widthPx || column.width;
                   
                   if (resizableColumns && onColumnPreferencesChange) {
@@ -292,12 +292,12 @@ function DataTable<T extends Record<string, any>>({
                         width={width}
                         onResize={(newWidth) => {
                           const newPrefs = [...columnPreferences];
-                          const existingIndex = newPrefs.findIndex(p => p.key === column.key);
+                          const existingIndex = newPrefs.findIndex(p => p.columnName === column.key);
                           
                           if (existingIndex >= 0) {
                             newPrefs[existingIndex] = { ...newPrefs[existingIndex], widthPx: newWidth };
                           } else {
-                            newPrefs.push({ key: column.key, widthPx: newWidth, visible: true });
+                            newPrefs.push({ columnName: column.key, widthPx: newWidth, isVisible: true, orderIndex: newPrefs.length });
                           }
                           
                           onColumnPreferencesChange(newPrefs);
