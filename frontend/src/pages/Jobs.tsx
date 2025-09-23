@@ -152,12 +152,20 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       width: 130,
       render: (value: string, row: Job) => {
         if (row.statusInfo) {
+          // Ensure colors have # prefix
+          const backgroundColor = row.statusInfo.backgroundColor?.startsWith('#') 
+            ? row.statusInfo.backgroundColor 
+            : `#${row.statusInfo.backgroundColor}`;
+          const textColor = row.statusInfo.color?.startsWith('#') 
+            ? row.statusInfo.color 
+            : `#${row.statusInfo.color}`;
+            
           return (
             <span
               onClick={(e) => handleStatusClick(e, row)}
               style={{
-                backgroundColor: row.statusInfo.backgroundColor,
-                color: row.statusInfo.color,
+                backgroundColor: backgroundColor,
+                color: textColor,
                 padding: '4px 8px',
                 borderRadius: '12px',
                 fontSize: '12px',
@@ -297,8 +305,10 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     );
     
     if (targetColumn && targetColumn.color) {
+      // Ensure color has # prefix
+      const color = targetColumn.color.startsWith('#') ? targetColumn.color : `#${targetColumn.color}`;
       return {
-        backgroundColor: targetColumn.color,
+        backgroundColor: color,
         fontWeight: '600',
         color: '#ffffff' // Use white text for better contrast
       };
