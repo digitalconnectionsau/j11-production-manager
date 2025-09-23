@@ -278,7 +278,10 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
 
   // Get cell styling for date columns based on status targeting
   const getDateCellStyle = (columnKey: string, row: Job) => {
-    if (!row.statusInfo?.targetColumns) return {};
+    if (!row.statusInfo?.targetColumns) {
+      console.log(`No statusInfo or targetColumns for job ${row.id}, status: ${row.status}`);
+      return {};
+    }
     
     // Map column keys to the targeting names used in the backend
     const columnMapping: Record<string, string> = {
@@ -289,18 +292,30 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     };
     
     const targetColumnName = columnMapping[columnKey];
-    if (!targetColumnName) return {};
+    if (!targetColumnName) {
+      console.log(`No mapping found for column: ${columnKey}`);
+      return {};
+    }
+    
+    console.log(`Checking job ${row.id}, column ${columnKey} -> ${targetColumnName}`);
+    console.log(`Available target columns:`, row.statusInfo.targetColumns);
     
     const targetColumn = row.statusInfo.targetColumns.find(
-      target => target.column === targetColumnName
+      target => target.column.toLowerCase() === targetColumnName.toLowerCase()
     );
     
     if (targetColumn) {
+      console.log(`Found target column match! Applying style:`, {
+        backgroundColor: targetColumn.color,
+        color: '#ffffff'
+      });
       return {
         backgroundColor: targetColumn.color,
         fontWeight: '600',
         color: '#ffffff' // Use white text for better contrast like the original
       };
+    } else {
+      console.log(`No target column found for ${targetColumnName} in:`, row.statusInfo.targetColumns.map(t => t.column));
     }
     
     return {};
