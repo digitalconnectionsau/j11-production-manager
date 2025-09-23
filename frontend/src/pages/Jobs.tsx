@@ -62,6 +62,7 @@ interface JobStatus {
   backgroundColor: string;
   isDefault: boolean;
   isFinal: boolean;
+  targetColumns?: ColumnTarget[];
 }
 
 interface JobsProps {
@@ -342,22 +343,47 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     e.stopPropagation(); // Prevent row click
     
     try {
-      // Get next status logic (simplified - you might want to get this from job statuses)
-      const statusOrder = ['not-assigned', 'in-progress', 'completed'];
-      const currentIndex = statusOrder.indexOf(job.status);
-      const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+      // Cycle through available job statuses
+      const currentIndex = jobStatuses.findIndex(status => status.id === job.statusId);
+      const nextIndex = (currentIndex + 1) % jobStatuses.length;
+      const nextStatus = jobStatuses[nextIndex];
       
-      // Update job status
-      await apiRequest(`/api/jobs/${job.id}`, {
+      // Update job status on the server
+      const response = await apiRequest(`/api/jobs/${job.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ ...job, status: nextStatus })
+        body: JSON.stringify({ 
+          ...job, 
+          status: nextStatus.name,
+          statusId: nextStatus.id
+        })
       }, token || '');
-      
-      // Reload data to reflect changes
-      const [jobsResponse] = await Promise.all([
-        apiRequest(API_ENDPOINTS.jobs, {}, token || '')
-      ]);
-      setJobs(jobsResponse.data);
+
+      if (response.success) {
+        // Update local state without full reload
+        setJobs(prevJobs => 
+          prevJobs.map(j => 
+            j.id === job.id 
+              ? { 
+                  ...j, 
+                  status: nextStatus.name,
+                  statusId: nextStatus.id,
+                  statusInfo: {
+                    id: nextStatus.id,
+                    name: nextStatus.name,
+                    displayName: nextStatus.displayName,
+                    color: nextStatus.color,
+                    backgroundColor: nextStatus.backgroundColor,
+                    isDefault: nextStatus.isDefault,
+                    isFinal: nextStatus.isFinal,
+                    targetColumns: nextStatus.targetColumns || []
+                  }
+                }
+              : j
+          )
+        );
+      } else {
+        throw new Error(response.error || 'Failed to update status');
+      }
       
     } catch (err) {
       console.error('Error updating job status:', err);
