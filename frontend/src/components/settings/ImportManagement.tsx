@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ImportManagementProps {
   // Add any props if needed
@@ -50,6 +51,7 @@ const DATABASE_FIELDS = {
     { value: 'assembly', label: 'Assembly', required: false },
     { value: 'delivery', label: 'Delivery', required: false },
     { value: 'status', label: 'Status', required: false },
+    { value: 'comments', label: 'Comments', required: false },
   ],
 };
 
@@ -62,6 +64,14 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [columnMapping, setColumnMapping] = useState<{[csvColumn: string]: string}>({});
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResults, setImportResults] = useState<any>(null);
+  // Add pagination state at component level to avoid hooks rule violation
+  const [previewCurrentPage, setPreviewCurrentPage] = useState(1);
+  const [showAllPreviewRows, setShowAllPreviewRows] = useState(false);
+
+  const { token } = useAuth();
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const steps: ImportStep[] = [
     {
@@ -96,8 +106,15 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       id: 5,
       title: 'Import Data',
       description: 'Import your data into the system',
-      completed: false,
+      completed: !!importResults,
       active: currentStep === 5,
+    },
+    {
+      id: 6,
+      title: 'Complete',
+      description: 'Import completed successfully',
+      completed: !!importResults,
+      active: currentStep === 6,
     },
   ];
 
@@ -559,6 +576,255 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
     );
   };
 
+  const renderStep4 = () => {
+    if (!csvData || !importType) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Please complete the previous steps first.</p>
+        </div>
+      );
+    }
+
+    // Use component-level pagination state (defined at top of component)
+    const rowsPerPage = 10;
+
+    // Create mapped data for preview
+    const mappedData = csvData.rows.map((row, index) => {
+      const mappedRow: any = {};
+      csvData.headers.forEach((header, headerIndex) => {
+        const dbField = columnMapping[header];
+        if (dbField) {
+          mappedRow[dbField] = row[headerIndex] || '';
+        }
+      });
+      return { ...mappedRow, rowIndex: index + 1 };
+    });
+
+    // Validation
+    const validImportType = importType as 'clients' | 'projects' | 'jobs';
+    const availableFields = DATABASE_FIELDS[validImportType];
+    const requiredFields = availableFields.filter(field => field.required);
+    
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Check if all required fields are mapped
+    const mappedFieldValues = Object.values(columnMapping);
+    const unmappedRequired = requiredFields.filter(field => !mappedFieldValues.includes(field.value));
+    
+    if (unmappedRequired.length > 0) {
+      errors.push(`Missing required fields: ${unmappedRequired.map(f => f.label).join(', ')}`);
+    }
+
+    // Validate data quality
+    let validRows = 0;
+    const rowErrors: Array<{row: number, errors: string[]}> = [];
+
+    mappedData.forEach((row, index) => {
+      const rowErrorList: string[] = [];
+      
+      requiredFields.forEach(field => {
+        if (!row[field.value] || row[field.value].toString().trim() === '') {
+          rowErrorList.push(`${field.label} is required`);
+        }
+      });
+
+      if (rowErrorList.length === 0) {
+        validRows++;
+      } else {
+        rowErrors.push({ row: index + 2, errors: rowErrorList }); // +2 because +1 for header, +1 for 1-based indexing
+      }
+    });
+
+    if (rowErrors.length > 0) {
+      warnings.push(`${rowErrors.length} rows have validation errors`);
+    }
+
+    const canProceed = errors.length === 0;
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Preview & Validate
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Review your data before importing. Check for any errors or warnings below.
+          </p>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="text-2xl font-bold text-blue-600">{csvData.rows.length}</div>
+            <div className="text-sm text-blue-600">Total Rows</div>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="text-2xl font-bold text-green-600">{validRows}</div>
+            <div className="text-sm text-green-600">Valid Rows</div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-2xl font-bold text-yellow-600">{rowErrors.length}</div>
+            <div className="text-sm text-yellow-600">Rows with Warnings</div>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-2xl font-bold text-red-600">{errors.length}</div>
+            <div className="text-sm text-red-600">Critical Errors</div>
+          </div>
+        </div>
+
+        {/* Errors */}
+        {errors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 className="font-medium text-red-800 mb-2">❌ Critical Errors</h4>
+            <ul className="text-sm text-red-700 space-y-1">
+              {errors.map((error, index) => (
+                <li key={index}>• {error}</li>
+              ))}
+            </ul>
+            <p className="text-sm text-red-600 mt-2 italic">
+              These errors must be fixed before you can proceed. Go back to Step 3 to fix column mappings.
+            </p>
+          </div>
+        )}
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h4 className="font-medium text-yellow-800 mb-2">⚠️ Warnings</h4>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              {warnings.map((warning, index) => (
+                <li key={index}>• {warning}</li>
+              ))}
+            </ul>
+            <p className="text-sm text-yellow-600 mt-2 italic">
+              All rows will be imported, including those with missing required fields. You can fix the data later in the system.
+            </p>
+          </div>
+        )}
+
+        {/* Row Errors Details */}
+        {rowErrors.length > 0 && rowErrors.length <= 10 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-800 mb-2">Row-level Issues:</h4>
+            <div className="space-y-2 text-sm">
+              {rowErrors.map((error, index) => (
+                <div key={index} className="text-gray-700">
+                  <span className="font-medium">Row {error.row}:</span> {error.errors.join(', ')}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Data Preview */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h4 className="font-medium text-gray-800">
+              Data Preview {showAllPreviewRows ? `(All ${mappedData.length} rows)` : `(Page ${previewCurrentPage})`}
+            </h4>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowAllPreviewRows(!showAllPreviewRows)}
+                className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded font-medium transition-colors"
+              >
+                {showAllPreviewRows ? 'Show Paginated' : 'Show All'}
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto" style={{maxHeight: showAllPreviewRows ? '600px' : 'none', overflowY: showAllPreviewRows ? 'auto' : 'visible'}}>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Row</th>
+                  {Object.values(columnMapping).map((fieldValue, index) => {
+                    const field = availableFields.find(f => f.value === fieldValue);
+                    return (
+                      <th key={index} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {field?.label || fieldValue}
+                        {field?.required && <span className="text-red-500 ml-1">*</span>}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(showAllPreviewRows ? mappedData : mappedData.slice((previewCurrentPage - 1) * rowsPerPage, previewCurrentPage * rowsPerPage)).map((row, index) => {
+                  const actualRowIndex = showAllPreviewRows ? index : (previewCurrentPage - 1) * rowsPerPage + index;
+                  return (
+                    <tr key={actualRowIndex} className={rowErrors.some(e => e.row === actualRowIndex + 2) ? 'bg-red-50' : ''}>
+                      <td className="px-4 py-2 text-sm text-gray-900">{actualRowIndex + 2}</td>
+                      {Object.values(columnMapping).map((fieldValue, fieldIndex) => (
+                        <td key={fieldIndex} className="px-4 py-2 text-sm text-gray-900">
+                          {row[fieldValue] || <span className="text-gray-400 italic">empty</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Pagination Controls */}
+          {!showAllPreviewRows && mappedData.length > rowsPerPage && (
+            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Showing {((previewCurrentPage - 1) * rowsPerPage) + 1} to {Math.min(previewCurrentPage * rowsPerPage, mappedData.length)} of {mappedData.length} rows
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPreviewCurrentPage(Math.max(1, previewCurrentPage - 1))}
+                  disabled={previewCurrentPage === 1}
+                  className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 rounded font-medium transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {previewCurrentPage} of {Math.ceil(mappedData.length / rowsPerPage)}
+                </span>
+                <button
+                  onClick={() => setPreviewCurrentPage(Math.min(Math.ceil(mappedData.length / rowsPerPage), previewCurrentPage + 1))}
+                  disabled={previewCurrentPage === Math.ceil(mappedData.length / rowsPerPage)}
+                  className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 rounded font-medium transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {showAllPreviewRows && mappedData.length > 20 && (
+            <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600 text-center border-t border-gray-200">
+              Showing all {mappedData.length} rows (scroll to see more)
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex justify-between">
+          <button
+            onClick={() => setCurrentStep(3)}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            Previous: Fix Mappings
+          </button>
+          <button
+            onClick={() => setCurrentStep(5)}
+            disabled={!canProceed}
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              canProceed
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-300 cursor-not-allowed text-gray-500'
+            }`}
+          >
+            {canProceed ? '✅ Import Data' : '❌ Fix Errors First'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
@@ -568,12 +834,297 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       case 3:
         return renderStep3();
       case 4:
-        return <div className="text-center py-8 text-gray-500">Preview & validation coming soon...</div>;
+        return renderStep4();
       case 5:
-        return <div className="text-center py-8 text-gray-500">Import process coming soon...</div>;
+        return renderStep5();
+      case 6:
+        return renderImportResults();
       default:
         return renderStep1();
     }
+  };
+
+  const renderStep5 = () => {
+    if (!csvData || !importType) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Please complete the previous steps first.</p>
+        </div>
+      );
+    }
+
+    // Perform the import
+    const handleImport = async () => {
+      if (!csvData || !importType) return;
+
+      setIsImporting(true);
+      setError(null);
+
+      try {
+        // Create mapped data for import
+        const mappedData = csvData.rows.map((row) => {
+          const mappedRow: any = {};
+          csvData.headers.forEach((header, headerIndex) => {
+            const dbField = columnMapping[header];
+            if (dbField) {
+              mappedRow[dbField] = row[headerIndex] || '';
+            }
+          });
+          return mappedRow;
+        });
+
+        // Import ALL data - don't filter out rows with missing required fields
+        const validImportType = importType as 'clients' | 'projects' | 'jobs';
+        const requiredFields = DATABASE_FIELDS[validImportType].filter(field => field.required);
+        
+        // Count how many rows have validation issues for logging
+        const validRows = mappedData.filter(row => {
+          return requiredFields.every(field => row[field.value] && row[field.value].toString().trim() !== '');
+        }).length;
+        
+        const validData = mappedData; // Import ALL rows, including those with errors
+
+        console.log(`Importing ALL ${validData.length} rows (${validRows} valid, ${mappedData.length - validRows} with errors that can be fixed later)`);
+
+        // Make API call
+        const response = await fetch(`${API_URL}/api/import/${importType}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ data: validData }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const results = await response.json();
+        setImportResults(results);
+        
+        console.log('Import completed:', results);
+        
+        // Move to success state
+        setCurrentStep(6);
+
+      } catch (error) {
+        console.error('Import error:', error);
+        setError(error instanceof Error ? error.message : 'Import failed');
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Import Data
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Ready to import your {importType} data. Click the button below to start the import process.
+          </p>
+        </div>
+
+        {/* Import Summary */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h4 className="font-medium text-blue-800 mb-4">Import Summary</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-blue-600 font-medium">Import Type:</span>
+              <span className="ml-2 capitalize">{importType}</span>
+            </div>
+            <div>
+              <span className="text-blue-600 font-medium">File:</span>
+              <span className="ml-2">{file?.name}</span>
+            </div>
+            <div>
+              <span className="text-blue-600 font-medium">Total Rows:</span>
+              <span className="ml-2">{csvData.rows.length}</span>
+            </div>
+            <div>
+              <span className="text-blue-600 font-medium">Columns Mapped:</span>
+              <span className="ml-2">{Object.keys(columnMapping).length}</span>
+            </div>
+          </div>
+          
+          {importType === 'jobs' && Object.values(columnMapping).includes('client_name') && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+              <p className="text-green-800 text-sm">
+                ✨ <strong>Smart Import Enabled:</strong> Clients and projects will be automatically created if they don't exist.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="ml-2 text-sm text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Import Button */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleImport}
+            disabled={isImporting}
+            className={`px-8 py-4 rounded-lg font-medium text-lg transition-all ${
+              isImporting
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-1'
+            }`}
+          >
+            {isImporting ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                Importing...
+              </div>
+            ) : (
+              '🚀 Start Import'
+            )}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex justify-between">
+          <button
+            onClick={() => setCurrentStep(4)}
+            disabled={isImporting}
+            className="bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            Previous: Review Data
+          </button>
+          <div></div> {/* Spacer */}
+        </div>
+      </div>
+    );
+  };
+
+  const renderImportResults = () => {
+    if (!importResults) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No import results available.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Import Completed Successfully!
+          </h3>
+          <p className="text-gray-600">
+            Your {importType} data has been imported into the system.
+          </p>
+        </div>
+
+        {/* Results Summary */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h4 className="font-medium text-green-800 mb-4">Import Results</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {importResults.created && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{importResults.created}</div>
+                <div className="text-sm text-green-700">Created</div>
+              </div>
+            )}
+            {importResults.clientsCreated && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{importResults.clientsCreated}</div>
+                <div className="text-sm text-blue-700">Clients Created</div>
+              </div>
+            )}
+            {importResults.projectsCreated && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{importResults.projectsCreated}</div>
+                <div className="text-sm text-purple-700">Projects Created</div>
+              </div>
+            )}
+            {importResults.errors && importResults.errors.length > 0 && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{importResults.errors.length}</div>
+                <div className="text-sm text-red-700">Errors</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Error Details */}
+        {importResults.errors && importResults.errors.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h4 className="font-medium text-red-800 mb-4">Import Errors</h4>
+            <div className="space-y-2">
+              {importResults.errors.map((error: string, index: number) => (
+                <div key={index} className="text-sm text-red-700">
+                  • {error}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Smart Import Details */}
+        {(importResults.clientsCreated || importResults.projectsCreated) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 className="font-medium text-blue-800 mb-4">✨ Smart Import Summary</h4>
+            <div className="text-sm text-blue-700 space-y-2">
+              {importResults.clientsCreated && (
+                <p>• Created {importResults.clientsCreated} new clients that didn't exist</p>
+              )}
+              {importResults.projectsCreated && (
+                <p>• Created {importResults.projectsCreated} new projects that didn't exist</p>
+              )}
+              <p>• All data has been properly linked and organized in your system</p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={() => {
+              // Reset for new import
+              setCurrentStep(1);
+              setImportType(null);
+              setFile(null);
+              setCsvData(null);
+              setColumnMapping({});
+              setError(null);
+              setImportResults(null);
+              // Reset pagination state
+              setPreviewCurrentPage(1);
+              setShowAllPreviewRows(false);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Import Another File
+          </button>
+          <button
+            onClick={() => {
+              // Close the import modal or navigate away
+              window.location.reload(); // Simple way to refresh and see new data
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            View Imported Data
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
