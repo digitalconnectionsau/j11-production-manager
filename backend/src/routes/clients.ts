@@ -208,19 +208,34 @@ router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: Au
         .where(eq(projects.clientId, clientId));
 
       const projectIds = clientProjects.map(p => p.id);
+      console.log(`Deleting client ${clientId}: found ${projectIds.length} projects`);
 
       // Delete all jobs associated with client's projects
       if (projectIds.length > 0) {
-        for (const projectId of projectIds) {
-          await tx.delete(jobs).where(eq(jobs.projectId, projectId));
-        }
+        // More efficient: delete all jobs in one query using inArray
+        const deletedJobs = await tx
+          .delete(jobs)
+          .where(sql`${jobs.projectId} = ANY(${projectIds})`)
+          .returning({ id: jobs.id });
+        
+        console.log(`Deleted ${deletedJobs.length} jobs for client ${clientId}`);
       }
 
       // Delete all projects for this client
-      await tx.delete(projects).where(eq(projects.clientId, clientId));
+      const deletedProjects = await tx
+        .delete(projects)
+        .where(eq(projects.clientId, clientId))
+        .returning({ id: projects.id });
+      
+      console.log(`Deleted ${deletedProjects.length} projects for client ${clientId}`);
 
       // Delete all contacts for this client
-      await tx.delete(contacts).where(eq(contacts.clientId, clientId));
+      const deletedContacts = await tx
+        .delete(contacts)
+        .where(eq(contacts.clientId, clientId))
+        .returning({ id: contacts.id });
+      
+      console.log(`Deleted ${deletedContacts.length} contacts for client ${clientId}`);
 
       // Finally, delete the client
       const deletedClient = await tx
@@ -232,12 +247,23 @@ router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: Au
         throw new Error('Client not found');
       }
 
-      return deletedClient[0];
+      console.log(`Successfully deleted client ${clientId} and all associated data`);
+      return {
+        client: deletedClient[0],
+        deletedJobs: projectIds.length > 0 ? 'jobs deleted' : 'no jobs',
+        deletedProjects: deletedProjects.length,
+        deletedContacts: deletedContacts.length
+      };
     });
 
     res.json({ 
       message: 'Client and all associated data deleted successfully',
-      deletedClient: result
+      deletedClient: result.client,
+      summary: {
+        projects: result.deletedProjects,
+        contacts: result.deletedContacts,
+        jobs: result.deletedJobs
+      }
     });
   } catch (error) {
     console.error('Error deleting client:', error);
