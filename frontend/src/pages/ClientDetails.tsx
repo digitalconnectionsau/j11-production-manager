@@ -103,13 +103,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived: !client.archived })
-      });
+      }, token || '');
 
       if (response.success) {
         await fetchClient(); // Refresh client data
         setShowArchiveModal(false);
       } else {
-        setError(`Failed to ${client.archived ? 'unarchive' : 'archive'} client`);
+        setError(response.error || `Failed to ${client.archived ? 'unarchive' : 'archive'} client`);
       }
     } catch (err) {
       setError(`Failed to ${client?.archived ? 'unarchive' : 'archive'} client`);
@@ -126,13 +126,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       setDeleteLoading(true);
       const response = await apiRequest(`/api/clients/${client.id}`, {
         method: 'DELETE'
-      });
+      }, token || '');
 
       if (response.success) {
         setShowDeleteModal(false);
         onBack(); // Navigate back to clients list
       } else {
-        setError('Failed to delete client');
+        setError(response.error || 'Failed to delete client');
       }
     } catch (err) {
       setError('Failed to delete client');
