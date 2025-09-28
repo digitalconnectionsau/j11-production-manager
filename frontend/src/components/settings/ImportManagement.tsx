@@ -44,6 +44,7 @@ const DATABASE_FIELDS = {
     { value: 'type', label: 'Type', required: true },
     { value: 'items', label: 'Items', required: true },
     { value: 'project_name', label: 'Project Name', required: true },
+    { value: 'client_name', label: 'Customer/Client', required: false },
     { value: 'nesting', label: 'Nesting', required: false },
     { value: 'machining', label: 'Machining', required: false },
     { value: 'assembly', label: 'Assembly', required: false },
