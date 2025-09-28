@@ -274,7 +274,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
           Upload CSV File
         </h3>
         <p className="text-gray-600 mb-6">
-          Upload a CSV file containing your {importType} data. The first row should contain column headers.
+          Upload a CSV file containing your {importType || 'selected'} data. The first row should contain column headers.
         </p>
 
         <div 
@@ -371,7 +371,18 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       );
     }
 
-    const availableFields = DATABASE_FIELDS[importType];
+    // Type assertion after null check to satisfy TypeScript
+    const validImportType = importType as 'clients' | 'projects' | 'jobs';
+    const availableFields = DATABASE_FIELDS[validImportType];
+    
+    if (!availableFields) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-500">Invalid import type selected. Please go back and select a valid import type.</p>
+        </div>
+      );
+    }
+
     const requiredFields = availableFields.filter(field => field.required);
     const optionalFields = availableFields.filter(field => !field.required);
 
