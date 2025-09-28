@@ -235,12 +235,11 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-4">
           What would you like to import?
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { id: 'clients', label: 'Clients', description: 'Import client information', icon: '👥' },
             { id: 'projects', label: 'Projects', description: 'Import project data', icon: '📁' },
             { id: 'jobs', label: 'Jobs', description: 'Import job records', icon: '⚡' },
-            { id: 'all', label: 'All Data', description: 'Import everything from one file', icon: '📊' },
           ].map((type) => (
             <div
               key={type.id}
@@ -401,12 +400,16 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
 
     // Type assertion after null check to satisfy TypeScript
     const validImportType = importType as 'clients' | 'projects' | 'jobs';
+    console.log('renderStep3: importType =', importType, 'validImportType =', validImportType);
     const availableFields = DATABASE_FIELDS[validImportType];
+    console.log('availableFields =', availableFields);
     
     if (!availableFields) {
+      console.error('No fields found for import type:', validImportType);
       return (
         <div className="text-center py-8">
           <p className="text-red-500">Invalid import type selected. Please go back and select a valid import type.</p>
+          <p className="text-sm text-gray-500 mt-2">Debug: Import type is "{validImportType}"</p>
         </div>
       );
     }
