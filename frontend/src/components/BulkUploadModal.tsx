@@ -337,13 +337,52 @@ B1,All Units,Kitchen & Butlers,nesting-complete,10/08/2025,12/08/2025,,,"Premium
                 <h3 className="text-lg font-medium text-black">
                   Preview Jobs ({parsedJobs.length} total, {parsedJobs.filter(j => j.errors.length === 0).length} valid)
                 </h3>
-                <button
-                  onClick={() => setUploadStep('select')}
-                  className="text-primary hover:opacity-80"
-                >
-                  Choose Different File
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => console.log('Parsed jobs:', parsedJobs.slice(0, 5))}
+                    className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600 hover:bg-gray-200"
+                  >
+                    Debug (Console)
+                  </button>
+                  <button
+                    onClick={() => setUploadStep('select')}
+                    className="text-primary hover:opacity-80"
+                  >
+                    Choose Different File
+                  </button>
+                </div>
               </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{parsedJobs.length}</div>
+                  <div className="text-sm text-gray-600">Total Jobs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{parsedJobs.filter(j => j.errors.length === 0).length}</div>
+                  <div className="text-sm text-gray-600">Valid Jobs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{parsedJobs.filter(j => j.errors.length > 0).length}</div>
+                  <div className="text-sm text-gray-600">Jobs with Errors</div>
+                </div>
+              </div>
+
+              {/* Show sample of common errors */}
+              {parsedJobs.filter(j => j.errors.length > 0).length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">Common Errors Found:</h4>
+                  <div className="text-sm text-yellow-700 space-y-1">
+                    {[...new Set(parsedJobs.flatMap(j => j.errors))].slice(0, 3).map((error, index) => (
+                      <div key={index}>• {error}</div>
+                    ))}
+                    {[...new Set(parsedJobs.flatMap(j => j.errors))].length > 3 && (
+                      <div>• ...and more</div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="max-h-96 overflow-auto border border-light-grey rounded-lg">
                 <table className="min-w-full text-sm">
@@ -378,20 +417,26 @@ B1,All Units,Kitchen & Butlers,nesting-complete,10/08/2025,12/08/2025,,,"Premium
                 </table>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex space-x-3 pt-6 border-t border-gray-200">
                 <button
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 border border-light-grey text-charcoal rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => setUploadStep('select')}
+                  className="px-6 py-3 border border-light-grey text-charcoal rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  ← Back
                 </button>
-                <button
-                  onClick={handleUpload}
-                  disabled={loading || parsedJobs.filter(j => j.errors.length === 0).length === 0}
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Upload {parsedJobs.filter(j => j.errors.length === 0).length} Valid Jobs
-                </button>
+                {parsedJobs.filter(j => j.errors.length === 0).length === 0 ? (
+                  <div className="flex-1 px-6 py-3 bg-gray-100 text-gray-500 rounded-lg text-center">
+                    No valid jobs to upload - fix errors first
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleUpload}
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium text-lg"
+                  >
+                    {loading ? 'Uploading...' : `🚀 Upload ${parsedJobs.filter(j => j.errors.length === 0).length} Valid Jobs`}
+                  </button>
+                )}
               </div>
             </div>
           )}
