@@ -1,7 +1,7 @@
 import express from 'express';
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { clients, projects } from '../db/schema.js';
+import { clients, projects, jobs, contacts } from '../db/schema.js';
 import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
 
 const router = express.Router();
@@ -9,6 +9,9 @@ const router = express.Router();
 // GET /api/clients - Get all clients
 router.get('/', verifyTokenAndPermission('view_clients'), async (req: AuthenticatedRequest, res) => {
   try {
+    const { includeArchived } = req.query;
+    const showArchived = includeArchived === 'true';
+
     const allClients = await db
       .select({
         id: clients.id,
@@ -21,15 +24,17 @@ router.get('/', verifyTokenAndPermission('view_clients'), async (req: Authentica
         contactPerson: clients.contactPerson,
         notes: clients.notes,
         isActive: clients.isActive,
+        archived: clients.archived,
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
         projectCount: sql<number>`COUNT(${projects.id})`,
       })
       .from(clients)
       .leftJoin(projects, eq(clients.id, projects.clientId))
+      .where(showArchived ? undefined : eq(clients.archived, false))
       .groupBy(clients.id, clients.name, clients.company, clients.email, clients.phone, 
                clients.address, clients.abn, clients.contactPerson, clients.notes, clients.isActive, 
-               clients.createdAt, clients.updatedAt)
+               clients.archived, clients.createdAt, clients.updatedAt)
       .orderBy(desc(clients.createdAt));
 
     // Transform data for frontend
@@ -156,35 +161,89 @@ router.put('/:id', verifyTokenAndPermission('edit_clients'), async (req: Authent
   }
 });
 
-// DELETE /api/clients/:id - Delete a client
+// PATCH /api/clients/:id/archive - Archive/unarchive a client
+router.patch('/:id/archive', verifyTokenAndPermission('edit_clients'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const clientId = parseInt(req.params.id);
+    const { archived } = req.body;
+
+    if (typeof archived !== 'boolean') {
+      return res.status(400).json({ error: 'archived field must be a boolean' });
+    }
+
+    const updatedClient = await db
+      .update(clients)
+      .set({ 
+        archived: archived,
+        updatedAt: new Date()
+      })
+      .where(eq(clients.id, clientId))
+      .returning();
+
+    if (updatedClient.length === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({ 
+      message: `Client ${archived ? 'archived' : 'unarchived'} successfully`,
+      client: updatedClient[0]
+    });
+  } catch (error) {
+    console.error('Error archiving client:', error);
+    res.status(500).json({ error: 'Failed to archive client' });
+  }
+});
+
+// DELETE /api/clients/:id - Delete a client and all associated data
 router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const clientId = parseInt(req.params.id);
 
-    // Check if client has any projects
-    const clientProjects = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.clientId, clientId));
+    // Start a transaction for cascading delete
+    const result = await db.transaction(async (tx) => {
+      // Get all projects for this client
+      const clientProjects = await tx
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.clientId, clientId));
 
-    if (clientProjects.length > 0) {
-      return res.status(400).json({ 
-        error: 'Cannot delete client with existing projects. Please reassign or delete projects first.' 
-      });
-    }
+      const projectIds = clientProjects.map(p => p.id);
 
-    const deletedClient = await db
-      .delete(clients)
-      .where(eq(clients.id, clientId))
-      .returning();
+      // Delete all jobs associated with client's projects
+      if (projectIds.length > 0) {
+        for (const projectId of projectIds) {
+          await tx.delete(jobs).where(eq(jobs.projectId, projectId));
+        }
+      }
 
-    if (deletedClient.length === 0) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
+      // Delete all projects for this client
+      await tx.delete(projects).where(eq(projects.clientId, clientId));
 
-    res.json({ message: 'Client deleted successfully' });
+      // Delete all contacts for this client
+      await tx.delete(contacts).where(eq(contacts.clientId, clientId));
+
+      // Finally, delete the client
+      const deletedClient = await tx
+        .delete(clients)
+        .where(eq(clients.id, clientId))
+        .returning();
+
+      if (deletedClient.length === 0) {
+        throw new Error('Client not found');
+      }
+
+      return deletedClient[0];
+    });
+
+    res.json({ 
+      message: 'Client and all associated data deleted successfully',
+      deletedClient: result
+    });
   } catch (error) {
     console.error('Error deleting client:', error);
+    if (error instanceof Error && error.message === 'Client not found') {
+      return res.status(404).json({ error: 'Client not found' });
+    }
     res.status(500).json({ error: 'Failed to delete client' });
   }
 });

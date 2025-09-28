@@ -94,6 +94,7 @@ export const clients = pgTable('clients', {
   contactPerson: varchar('contact_person', { length: 255 }),
   notes: text('notes'),
   isActive: boolean('is_active').default(true),
+  archived: boolean('archived').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

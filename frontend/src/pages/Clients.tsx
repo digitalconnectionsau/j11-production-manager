@@ -12,6 +12,7 @@ interface Client {
   contactPerson?: string;
   notes?: string;
   isActive: boolean;
+  archived?: boolean;
   status: string;
   projects: number;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate as formatDateUtil } from '../utils/dateUtils';
+import { apiRequest } from '../utils/api';
 import AddJobModal from '../components/AddJobModal';
 import BulkUploadModal from '../components/BulkUploadModal';
 
@@ -99,8 +100,14 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
   // Helper function to format date for display
   const formatDate = (dateString: string): string => {
-    if (!dateString) return '-';
-    return formatDateUtil(dateString) || '-';
+    console.log('formatDate called with:', dateString, 'type:', typeof dateString);
+    if (!dateString) {
+      console.log('formatDate: no dateString, returning -');
+      return '-';
+    }
+    const result = formatDateUtil(dateString) || '-';
+    console.log('formatDate result:', result);
+    return result;
   };
 
   // Fetch project details
@@ -137,6 +144,19 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         isPinned = pinnedData.some((p: any) => p.projectId === projectId);
       }
 
+      // Debug specific job date fields
+      if (projectData.jobs && projectData.jobs.length > 0) {
+        const firstJob = projectData.jobs[0];
+        console.log('ProjectDetails - First job date fields:', {
+          nestingDate: firstJob.nestingDate,
+          machiningDate: firstJob.machiningDate,
+          assemblyDate: firstJob.assemblyDate,
+          deliveryDate: firstJob.deliveryDate,
+          nestingDateType: typeof firstJob.nestingDate,
+          machiningDateType: typeof firstJob.machiningDate
+        });
+      }
+      
       setProject({ ...projectData, isPinned });
       setEditForm({ ...projectData, isPinned });
     } catch (err) {
@@ -297,10 +317,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     const nextStatus = jobStatuses[nextIndex];
     
     try {
-      const response = await fetch(`${API_URL}/api/jobs/${jobId}`, {
+      const response = await apiRequest(`/api/jobs/${jobId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -309,9 +328,34 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         }),
       });
 
-      if (response.ok) {
-        // Refresh project data to update the status display
-        await fetchProject();
+      if (response.success) {
+        // Update the job in the local state instead of refetching entire project
+        setProject(prevProject => {
+          if (!prevProject || !prevProject.jobs) return prevProject;
+          
+          return {
+            ...prevProject,
+            jobs: prevProject.jobs.map(job => 
+              job.id === jobId 
+                ? { 
+                    ...job, 
+                    statusId: nextStatus.id, 
+                    status: nextStatus.name as any,
+                    statusInfo: {
+                      id: nextStatus.id,
+                      name: nextStatus.name,
+                      displayName: nextStatus.displayName,
+                      color: nextStatus.color,
+                      backgroundColor: nextStatus.backgroundColor,
+                      isDefault: nextStatus.isDefault,
+                      isFinal: nextStatus.isFinal,
+                      targetColumns: nextStatus.targetColumns || []
+                    }
+                  }
+                : job
+            )
+          };
+        });
       } else {
         throw new Error('Failed to update job status');
       }
@@ -700,7 +744,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                         className="text-sm text-gray-900"
                         style={getColumnStyle(job, 'nesting')}
                       >
-                        {formatDate(job.nestingDate || '')}
+                        {job.nestingDate ? formatDate(job.nestingDate) : 'NO DATE'}
+                        {/* Debug: {JSON.stringify(job.nestingDate)} */}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -708,7 +753,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                         className="text-sm text-gray-900"
                         style={getColumnStyle(job, 'machining')}
                       >
-                        {formatDate(job.machiningDate || '')}
+                        {job.machiningDate ? formatDate(job.machiningDate) : 'NO DATE'}
+                        {/* Debug: {JSON.stringify(job.machiningDate)} */}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -716,7 +762,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                         className="text-sm text-gray-900"
                         style={getColumnStyle(job, 'assembly')}
                       >
-                        {formatDate(job.assemblyDate || '')}
+                        {job.assemblyDate ? formatDate(job.assemblyDate) : 'NO DATE'}
+                        {/* Debug: {JSON.stringify(job.assemblyDate)} */}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -724,7 +771,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                         className="text-sm text-gray-900"
                         style={getColumnStyle(job, 'delivery')}
                       >
-                        {formatDate(job.deliveryDate || '')}
+                        {job.deliveryDate ? formatDate(job.deliveryDate) : 'NO DATE'}
+                        {/* Debug: {JSON.stringify(job.deliveryDate)} */}
                       </div>
                     </td>
                     <td className="px-6 py-4">

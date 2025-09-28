@@ -4,6 +4,7 @@ import HolidaysManagement from '../components/HolidaysManagement';
 import LeadTimesManagement from '../components/settings/LeadTimesManagement';
 import UserManagement from '../components/settings/UserManagement';
 import ImportManagement from '../components/settings/ImportManagement';
+import ArchivedClientsManagement from '../components/settings/ArchivedClientsManagement';
 
 interface AppSettings {
   companyName: string;
@@ -18,7 +19,7 @@ interface AppSettings {
 }
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users'>('holidays');
+  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients'>('holidays');
   const [appSettings, setAppSettings] = useState<AppSettings>({
     companyName: 'J11 Productions',
     companyEmail: 'info@j11productions.com',
@@ -61,6 +62,7 @@ const Settings: React.FC = () => {
     { id: 'lead-times', label: 'Lead Times', icon: '⏱️' },
     { id: 'import', label: 'Import', icon: '📁' },
     { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'archived-clients', label: 'Archived Clients', icon: '📋' },
     { id: 'company', label: 'Company', icon: '🏢' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
@@ -136,6 +138,13 @@ const Settings: React.FC = () => {
       {activeTab === 'users' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <UserManagement />
+        </div>
+      )}
+
+      {/* Archived Clients Tab */}
+      {activeTab === 'archived-clients' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <ArchivedClientsManagement />
         </div>
       )}
 

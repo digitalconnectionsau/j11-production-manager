@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateUtils';
+import { apiRequest } from '../utils/api';
 import AddProjectModal from '../components/AddProjectModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface Contact {
   id?: number;
@@ -33,6 +35,7 @@ interface Client {
   contactPerson?: string;
   notes?: string;
   isActive: boolean;
+  archived?: boolean;
   status: string;
   projects: Project[]; // Changed from number to Project array
   lastContact?: string;
@@ -52,10 +55,14 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'details'>('overview');
   
-  // Future modal states - will be used when modals are implemented
+  // Modal states
   // @ts-ignore
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -83,6 +90,54 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
       setError(err instanceof Error ? err.message : 'Failed to fetch client');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Archive/unarchive client
+  const handleArchiveClient = async () => {
+    if (!client) return;
+    
+    try {
+      setArchiveLoading(true);
+      const response = await apiRequest(`/api/clients/${client.id}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived: !client.archived })
+      });
+
+      if (response.success) {
+        await fetchClient(); // Refresh client data
+        setShowArchiveModal(false);
+      } else {
+        setError(`Failed to ${client.archived ? 'unarchive' : 'archive'} client`);
+      }
+    } catch (err) {
+      setError(`Failed to ${client?.archived ? 'unarchive' : 'archive'} client`);
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  // Delete client
+  const handleDeleteClient = async () => {
+    if (!client) return;
+    
+    try {
+      setDeleteLoading(true);
+      const response = await apiRequest(`/api/clients/${client.id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.success) {
+        setShowDeleteModal(false);
+        onBack(); // Navigate back to clients list
+      } else {
+        setError('Failed to delete client');
+      }
+    } catch (err) {
+      setError('Failed to delete client');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -207,12 +262,92 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
         />
       )}
 
+      {/* Danger Zone */}
+      <div className="mt-12 border-t border-gray-200 pt-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-red-800 mb-4">Danger Zone</h3>
+          <p className="text-red-700 mb-6">
+            These actions are irreversible. Please be certain before proceeding.
+          </p>
+          
+          <div className="space-y-4">
+            {/* Archive/Unarchive Button */}
+            <div className="flex items-center justify-between py-3 border-b border-red-200 last:border-b-0">
+              <div>
+                <h4 className="font-medium text-red-800">
+                  {client.archived ? 'Unarchive Client' : 'Archive Client'}
+                </h4>
+                <p className="text-sm text-red-600">
+                  {client.archived 
+                    ? 'Make this client visible again in the main client list.'
+                    : 'Hide this client from the main list. Projects and jobs will remain but be hidden.'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => setShowArchiveModal(true)}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+              >
+                {client.archived ? 'Unarchive' : 'Archive'}
+              </button>
+            </div>
+
+            {/* Delete Button */}
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <h4 className="font-medium text-red-800">Delete Client</h4>
+                <p className="text-sm text-red-600">
+                  Permanently delete this client and all associated projects, jobs, and contacts. This cannot be undone.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Modals */}
       <AddProjectModal
         isOpen={showAddProjectModal}
         onClose={() => setShowAddProjectModal(false)}
         onProjectAdded={fetchClient}
         defaultClientId={client?.id}
+      />
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveModal}
+        onClose={() => setShowArchiveModal(false)}
+        onConfirm={handleArchiveClient}
+        title={`${client?.archived ? 'Unarchive' : 'Archive'} Client`}
+        description={
+          client?.archived 
+            ? `Are you sure you want to unarchive "${client?.name}"? This will make the client and all associated projects and jobs visible again.`
+            : `Are you sure you want to archive "${client?.name}"? This will hide the client and all associated projects and jobs from the main views, but they will remain in the database.`
+        }
+        confirmText=""
+        confirmButtonText={client?.archived ? 'Unarchive' : 'Archive'}
+        isLoading={archiveLoading}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteClient}
+        title="Delete Client"
+        description={`Are you sure you want to permanently delete "${client?.name}"? This will also delete all associated projects, jobs, and contacts. This action cannot be undone.`}
+        confirmText={`Please type the client name "${client?.name}" to confirm:`}
+        confirmButtonText="Delete Permanently"
+        requireNameTyping={true}
+        expectedName={client?.name || ''}
+        isDestructive={true}
+        isLoading={deleteLoading}
       />
     </div>
   );

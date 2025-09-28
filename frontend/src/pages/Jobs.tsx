@@ -330,6 +330,19 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
           apiRequest(API_ENDPOINTS.jobStatuses, {}, token || '')
         ]);
 
+        // Debug specific job date fields for comparison
+        if (jobsResponse.data && jobsResponse.data.length > 0) {
+          const firstJob = jobsResponse.data[0];
+          console.log('Jobs page - First job date fields:', {
+            nestingDate: firstJob.nestingDate,
+            machiningDate: firstJob.machiningDate,
+            assemblyDate: firstJob.assemblyDate,
+            deliveryDate: firstJob.deliveryDate,
+            nestingDateType: typeof firstJob.nestingDate,
+            machiningDateType: typeof firstJob.machiningDate
+          });
+        }
+
         setJobs(jobsResponse.data);
         setClients(clientsResponse.data);
         setProjects(projectsResponse.data);
