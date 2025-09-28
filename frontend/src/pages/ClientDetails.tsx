@@ -259,57 +259,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ clientId, onBack }) => {
         <DetailsTab 
           client={client} 
           onAddContact={() => setShowAddContactModal(true)}
+          onArchive={() => setShowArchiveModal(true)}
+          onDelete={() => setShowDeleteModal(true)}
         />
       )}
-
-      {/* Danger Zone */}
-      <div className="mt-12 border-t border-gray-200 pt-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-red-800 mb-4">Danger Zone</h3>
-          <p className="text-red-700 mb-6">
-            These actions are irreversible. Please be certain before proceeding.
-          </p>
-          
-          <div className="space-y-4">
-            {/* Archive/Unarchive Button */}
-            <div className="flex items-center justify-between py-3 border-b border-red-200 last:border-b-0">
-              <div>
-                <h4 className="font-medium text-red-800">
-                  {client.archived ? 'Unarchive Client' : 'Archive Client'}
-                </h4>
-                <p className="text-sm text-red-600">
-                  {client.archived 
-                    ? 'Make this client visible again in the main client list.'
-                    : 'Hide this client from the main list. Projects and jobs will remain but be hidden.'
-                  }
-                </p>
-              </div>
-              <button
-                onClick={() => setShowArchiveModal(true)}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
-              >
-                {client.archived ? 'Unarchive' : 'Archive'}
-              </button>
-            </div>
-
-            {/* Delete Button */}
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <h4 className="font-medium text-red-800">Delete Client</h4>
-                <p className="text-sm text-red-600">
-                  Permanently delete this client and all associated projects, jobs, and contacts. This cannot be undone.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Modals */}
       <AddProjectModal
@@ -482,7 +435,12 @@ const ProjectsTab: React.FC<{ client: Client; onAddProject: () => void }> = ({ c
 };
 
 // Details Tab Component
-const DetailsTab: React.FC<{ client: Client; onAddContact: () => void }> = ({ client, onAddContact }) => (
+const DetailsTab: React.FC<{ 
+  client: Client; 
+  onAddContact: () => void; 
+  onArchive: () => void; 
+  onDelete: () => void; 
+}> = ({ client, onAddContact, onArchive, onDelete }) => (
   <div className="space-y-6">
     {/* Company Details */}
     <div className="bg-white rounded-lg shadow-sm border border-light-grey p-6">
@@ -554,6 +512,55 @@ const DetailsTab: React.FC<{ client: Client; onAddContact: () => void }> = ({ cl
           </button>
         </div>
       )}
+    </div>
+
+    {/* Danger Zone */}
+    <div className="mt-12 border-t border-gray-200 pt-8">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-red-800 mb-4">Danger Zone</h3>
+        <p className="text-red-700 mb-6">
+          These actions are irreversible. Please be certain before proceeding.
+        </p>
+        
+        <div className="space-y-4">
+          {/* Archive/Unarchive Button */}
+          <div className="flex items-center justify-between py-3 border-b border-red-200 last:border-b-0">
+            <div>
+              <h4 className="font-medium text-red-800">
+                {client.archived ? 'Unarchive Client' : 'Archive Client'}
+              </h4>
+              <p className="text-sm text-red-600">
+                {client.archived 
+                  ? 'Make this client visible again in the main client list.'
+                  : 'Hide this client from the main list. Projects and jobs will remain but be hidden.'
+                }
+              </p>
+            </div>
+            <button
+              onClick={onArchive}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+            >
+              {client.archived ? 'Unarchive' : 'Archive'}
+            </button>
+          </div>
+
+          {/* Delete Button */}
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <h4 className="font-medium text-red-800">Delete Client</h4>
+              <p className="text-sm text-red-600">
+                Permanently delete this client and all associated projects, jobs, and contacts. This cannot be undone.
+              </p>
+            </div>
+            <button
+              onClick={onDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 );
