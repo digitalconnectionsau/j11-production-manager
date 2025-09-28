@@ -43,10 +43,26 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
+    if (!selectedFile) return;
+    
+    // Reset previous state
+    setError('');
+    setParsedJobs([]);
+    setUploadStep('select');
+    
+    // Accept both CSV and TSV files, and text files that might be tab-separated
+    const validTypes = ['text/csv', 'text/tab-separated-values', 'text/plain', 'application/vnd.ms-excel'];
+    const validExtensions = ['.csv', '.tsv', '.txt'];
+    
+    const fileExtension = selectedFile.name.toLowerCase().split('.').pop();
+    const hasValidExtension = validExtensions.includes(`.${fileExtension}`);
+    const hasValidType = validTypes.includes(selectedFile.type);
+    
+    if (hasValidExtension || hasValidType || selectedFile.type === '') {
+      // Many systems don't set MIME types correctly for CSV files, so we're more lenient
       parseCSV(selectedFile);
     } else {
-      setError('Please select a valid CSV file');
+      setError(`Please select a CSV, TSV, or text file. Selected: ${selectedFile.type || 'unknown type'}`);
     }
   };
 
@@ -63,32 +79,78 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
         return;
       }
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const expectedHeaders = ['unit', 'type', 'items', 'status', 'nesting date', 'machining date', 'assembly date', 'delivery date', 'comments'];
+      const headers = lines[0].split('\t').map(h => h.trim().toLowerCase());
+      console.log('Detected headers:', headers);
       
-      // Check if all required headers are present
-      const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
-      if (missingHeaders.length > 0) {
-        setError(`Missing CSV headers: ${missingHeaders.join(', ')}`);
-        return;
-      }
+      // Handle both tab-separated and comma-separated values
+      const delimiter = lines[0].includes('\t') ? '\t' : ',';
+      const headerRow = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
+      
+      console.log('Using delimiter:', delimiter === '\t' ? 'tab' : 'comma');
+      console.log('Headers:', headerRow);
 
       const jobs: JobData[] = [];
       
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+        const values = lines[i].split(delimiter).map(v => v.trim().replace(/"/g, ''));
         const errors: string[] = [];
         
+        // Map your CSV format to our expected format
+        const getValueByHeader = (possibleHeaders: string[]) => {
+          for (const header of possibleHeaders) {
+            const index = headerRow.indexOf(header);
+            if (index !== -1 && values[index]) {
+              return values[index];
+            }
+          }
+          return '';
+        };
+
+        // Status mapping
+        const mapStatus = (statusValue: string): string => {
+          const status = statusValue.toLowerCase();
+          if (status.includes('delivery complete') || status.includes('delivered')) return 'delivered';
+          if (status.includes('assembly complete') || status.includes('assembly')) return 'assembly-complete';
+          if (status.includes('machining complete') || status.includes('machining')) return 'machining-complete';
+          if (status.includes('nesting complete') || status.includes('nesting')) return 'nesting-complete';
+          if (status.includes('not assigned') || status.includes('not-assigned')) return 'not-assigned';
+          return 'not-assigned'; // default
+        };
+
+        // Date cleaning - handle #VALUE! and other Excel errors
+        const cleanDate = (dateStr: string): string => {
+          if (!dateStr || dateStr === '#VALUE!' || dateStr === '#REF!' || dateStr === '#N/A') {
+            return '';
+          }
+          // If already in DD/MM/YYYY format, return as is
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+            return dateStr;
+          }
+          // Try to parse other common date formats
+          try {
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) {
+              const day = String(date.getDate()).padStart(2, '0');
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const year = date.getFullYear();
+              return `${day}/${month}/${year}`;
+            }
+          } catch (e) {
+            console.warn('Could not parse date:', dateStr);
+          }
+          return '';
+        };
+        
         const job: JobData = {
-          unit: values[headers.indexOf('unit')] || '',
-          type: values[headers.indexOf('type')] || '',
-          items: values[headers.indexOf('items')] || '',
-          status: values[headers.indexOf('status')] || 'not-assigned',
-          nestingDate: values[headers.indexOf('nesting date')] || '',
-          machiningDate: values[headers.indexOf('machining date')] || '',
-          assemblyDate: values[headers.indexOf('assembly date')] || '',
-          deliveryDate: values[headers.indexOf('delivery date')] || '',
-          comments: values[headers.indexOf('comments')] || '',
+          unit: getValueByHeader(['unit', 'job', 'job number']),
+          type: getValueByHeader(['type', 'unit type']),
+          items: getValueByHeader(['items', 'description', 'item']),
+          status: mapStatus(getValueByHeader(['status', 'job status'])),
+          nestingDate: cleanDate(getValueByHeader(['nesting', 'nesting date', 'nesting_date'])),
+          machiningDate: cleanDate(getValueByHeader(['machining', 'machining date', 'machining_date'])),
+          assemblyDate: cleanDate(getValueByHeader(['assembly', 'assembly date', 'assembly_date'])),
+          deliveryDate: cleanDate(getValueByHeader(['delivery', 'delivery date', 'delivery_date'])),
+          comments: getValueByHeader(['comments', 'notes', 'comment']),
           rowIndex: i + 1,
           errors: []
         };
@@ -100,10 +162,10 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
 
         // Validate status
         if (job.status && !validStatuses.includes(job.status)) {
-          errors.push(`Invalid status: ${job.status}`);
+          errors.push(`Invalid status: ${job.status} (mapped from original)`);
         }
 
-        // Validate dates
+        // Validate dates (only if they have values)
         if (job.nestingDate && !validateDate(job.nestingDate)) {
           errors.push('Invalid nesting date format (use DD/MM/YYYY)');
         }
@@ -121,11 +183,13 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
         jobs.push(job);
       }
 
+      console.log('Parsed jobs:', jobs.slice(0, 3)); // Log first 3 for debugging
       setParsedJobs(jobs);
       setUploadStep('preview');
       
     } catch (err) {
-      setError('Failed to parse CSV file. Please check the format.');
+      console.error('CSV parsing error:', err);
+      setError('Failed to parse CSV file. Please check the format. Make sure it uses tabs or commas as separators.');
     } finally {
       setLoading(false);
     }
@@ -220,13 +284,13 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
                 <div className="space-y-4">
                   <div className="text-4xl">📄</div>
                   <div>
-                    <h3 className="text-lg font-medium text-black mb-2">Upload CSV File</h3>
+                    <h3 className="text-lg font-medium text-black mb-2">Upload CSV/TSV File</h3>
                     <p className="text-charcoal mb-4">
-                      Upload a CSV file with job data. File must include headers: Unit, Type, Items, Status, Nesting Date, Machining Date, Assembly Date, Delivery Date, Comments
+                      Upload a CSV, TSV, or tab-separated file with job data. Flexible header matching supports your Excel export format.
                     </p>
                     <input
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.tsv,.txt"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="csvFile"
@@ -235,8 +299,15 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onJo
                       htmlFor="csvFile"
                       className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 cursor-pointer transition-all"
                     >
-                      Choose CSV File
+                      Choose File
                     </label>
+                    
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                      <p className="font-medium mb-1">✅ Your format is supported!</p>
+                      <p>• Handles Customer, Job, Unit, Type, Items, Nesting, Machining, Assembly, Delivery, Status</p>
+                      <p>• Auto-fixes #VALUE! and Excel errors</p>
+                      <p>• Maps statuses like "Delivery Complete" → "delivered"</p>
+                    </div>
                   </div>
                 </div>
               </div>
