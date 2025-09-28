@@ -67,21 +67,21 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       id: 1,
       title: 'Select Import Type',
       description: 'Choose what type of data you want to import',
-      completed: false,
+      completed: !!importType,
       active: currentStep === 1,
     },
     {
       id: 2,
       title: 'Upload CSV File',
       description: 'Upload your CSV file containing the data',
-      completed: false,
+      completed: !!(file && csvData),
       active: currentStep === 2,
     },
     {
       id: 3,
       title: 'Map Columns',
       description: 'Map your CSV columns to the correct fields',
-      completed: false,
+      completed: false, // We'll determine this based on required field mapping
       active: currentStep === 3,
     },
     {
@@ -101,7 +101,9 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
   ];
 
   const handleFileUpload = async (uploadedFile: File) => {
-    if (!uploadedFile || uploadedFile.type !== 'text/csv') {
+    // Check file extension instead of MIME type (more reliable for CSV files)
+    const fileName = uploadedFile.name.toLowerCase();
+    if (!uploadedFile || !fileName.endsWith('.csv')) {
       setError('Please upload a valid CSV file');
       return;
     }
@@ -117,7 +119,10 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
 
     try {
       const text = await uploadedFile.text();
+      console.log('File uploaded:', uploadedFile.name, 'Size:', uploadedFile.size);
+      console.log('File content preview:', text.substring(0, 200));
       const parsed = parseCSV(text);
+      console.log('Parsed CSV data:', parsed);
       setCsvData(parsed);
     } catch (err) {
       setError('Failed to parse CSV file. Please check the format.');
@@ -163,7 +168,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
     setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files);
-    const csvFile = files.find(file => file.type === 'text/csv');
+    const csvFile = files.find(file => file.name.toLowerCase().endsWith('.csv'));
     
     if (csvFile) {
       handleFileUpload(csvFile);
@@ -353,10 +358,10 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         </button>
         <button
           onClick={() => setCurrentStep(3)}
-          disabled={!file}
+          disabled={!file || !csvData || isProcessing}
           className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
-          Next Step
+          {isProcessing ? 'Processing...' : 'Next Step'}
         </button>
       </div>
     </div>
@@ -367,6 +372,29 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">Please complete the previous steps first.</p>
+          <div className="mt-4 text-sm text-gray-400">
+            <p>Import Type: {importType ? '✓' : '✗'}</p>
+            <p>CSV Data: {csvData ? '✓' : '✗'}</p>
+            <p>File: {file ? file.name : 'None'}</p>
+          </div>
+          <div className="mt-4 space-x-2">
+            {!importType && (
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Select Import Type
+              </button>
+            )}
+            {!csvData && importType && (
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Upload CSV File
+              </button>
+            )}
+          </div>
         </div>
       );
     }
