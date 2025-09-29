@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
 import Sidebar from './components/Sidebar';
+import TopBar from './components/TopBar';
 import Dashboard from './pages/Dashboard';
 import Jobs from './pages/Jobs';
 import Clients from './pages/Clients';
@@ -151,6 +152,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-light-grey">
+      <TopBar />
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={handlePageChange} 
@@ -158,9 +160,12 @@ const AppContent: React.FC = () => {
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
       />
-      <main className={`min-h-screen bg-white transition-all duration-300 ${
+      <main className={`bg-white transition-all duration-300 ${
         sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
+      }`} style={{ 
+        minHeight: 'calc(100vh - 60px)',
+        marginTop: '60px'
+      }}>
         {renderPage()}
       </main>
     </div>

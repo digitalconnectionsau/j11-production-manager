@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectSelect, collapsed, onToggleCollapse }) => {
-  const { logout, user, token } = useAuth();
+  const { token } = useAuth();
   const [pinnedProjects, setPinnedProjects] = useState<PinnedProject[]>([]);
   const [loadingPinned, setLoadingPinned] = useState(false);
 
@@ -105,10 +105,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
     }
   }, [currentPage]);
 
-  const handleLogout = () => {
-    logout();
-  };
-
   const handlePinnedProjectClick = (projectId: number) => {
     if (onProjectSelect) {
       onProjectSelect(projectId);
@@ -119,41 +115,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   return (
-    <div className={`fixed left-0 top-0 bg-black text-white h-screen flex flex-col transition-all duration-300 ${
+    <div className={`fixed left-0 bg-black text-white flex flex-col transition-all duration-300 ${
       collapsed ? 'w-16' : 'w-64'
-    }`}>
+    }`} style={{
+      top: '60px',
+      height: 'calc(100vh - 60px)'
+    }}>
       {/* Header */}
-      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-3' : 'p-6'}`}>
-        <div className="flex items-center justify-between">
-          {!collapsed && (
-            <div className="flex items-center space-x-3">
-              <img 
-                src="/favicon.svg" 
-                alt="J11 Logo" 
-                width="40" 
-                height="40" 
-                className="flex-shrink-0"
-              />
-              <div>
-                <h1 className="text-xl font-bold text-white leading-tight">Joinery Eleven</h1>
-                <p className="text-gray-300 text-sm -mt-0.8">Production Manager</p>
-              </div>
-            </div>
-          )}
-          {collapsed && (
-            <div className="flex items-center justify-center w-full">
-              <img 
-                src="/favicon.svg" 
-                alt="J11 Logo" 
-                width="32" 
-                height="32" 
-                className="flex-shrink-0"
-              />
-            </div>
-          )}
+      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-3' : 'p-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-end'}`}>
           <button
             onClick={onToggleCollapse}
-            className={`text-gray-300 hover:text-white transition-colors ${collapsed ? 'ml-0' : 'ml-auto'}`}
+            className="text-gray-300 hover:text-white transition-colors"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,27 +137,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
               )}
             </svg>
           </button>
-        </div>
-      </div>
-
-      {/* User Info */}
-      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-2' : 'p-4'}`}>
-        <div className="flex items-center justify-center">
-          {!collapsed ? (
-            <div className="flex items-center space-x-3 w-full">
-              <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                <span className="text-sm font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
-                <p className="text-xs text-gray-300 capitalize">{user?.role || 'User'}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-lg font-semibold text-white">{user?.name?.charAt(0) || 'U'}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -248,20 +200,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
           </div>
         )}
       </nav>
-
-      {/* Logout Button */}
-      <div className="border-t border-light-grey border-opacity-20">
-        <button
-          onClick={handleLogout}
-          className={`w-full flex items-center text-gray-300 hover:bg-red-600 hover:text-white transition-all duration-200 ${
-            collapsed ? 'justify-center px-3 py-3 mx-2 mb-2 rounded-lg' : 'space-x-3 px-6 py-3'
-          }`}
-          title={collapsed ? 'Logout' : undefined}
-        >
-          <Icon name="logout" size={24} />
-          {!collapsed && <span className="font-medium">Logout</span>}
-        </button>
-      </div>
     </div>
   );
 };
