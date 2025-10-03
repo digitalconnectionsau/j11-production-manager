@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from './Icon';
 
-const TopBar: React.FC = () => {
+interface TopBarProps {
+  sidebarCollapsed: boolean;
+}
+
+const TopBar: React.FC<TopBarProps> = ({ sidebarCollapsed }) => {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -31,22 +35,12 @@ const TopBar: React.FC = () => {
   }, [userMenuOpen]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-charcoal border-b border-light-grey border-opacity-20 px-6 py-3 flex items-center justify-between z-50" style={{ height: '60px' }}>
-      {/* Left side - J11 Branding */}
-      <div className="flex items-center space-x-3">
-        <img 
-          src="/favicon.svg" 
-          alt="J11 Logo" 
-          width="28" 
-          height="28" 
-          className="flex-shrink-0"
-        />
-        <div>
-          <h1 className="text-lg font-bold text-white leading-tight">Joinery Eleven</h1>
-          <p className="text-gray-300 text-xs -mt-0.5">Production Manager</p>
-        </div>
-      </div>
-
+    <div className="fixed top-0 right-0 bg-charcoal border-b border-light-grey border-opacity-20 px-6 py-3 flex items-center justify-end z-40" 
+         style={{ 
+           height: '60px',
+           left: sidebarCollapsed ? '64px' : '256px', // Account for sidebar width
+           transition: 'left 300ms'
+         }}>
       {/* Right side - User Menu */}
       <div className="relative">
         <button

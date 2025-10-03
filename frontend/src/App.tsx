@@ -152,7 +152,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-light-grey">
-      <TopBar />
+      <TopBar sidebarCollapsed={sidebarCollapsed} />
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={handlePageChange} 

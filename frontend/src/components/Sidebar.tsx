@@ -115,30 +115,68 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
   };
 
   return (
-    <div className={`fixed left-0 bg-black text-white flex flex-col transition-all duration-300 ${
+    <div className={`fixed left-0 top-0 bg-black text-white flex flex-col transition-all duration-300 z-50 ${
       collapsed ? 'w-16' : 'w-64'
     }`} style={{
-      top: '60px',
-      height: 'calc(100vh - 60px)'
+      height: '100vh'
     }}>
-      {/* Header */}
-      <div className={`border-b border-light-grey border-opacity-20 ${collapsed ? 'p-3' : 'p-4'}`}>
-        <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-end'}`}>
-          <button
-            onClick={onToggleCollapse}
-            className="text-gray-300 hover:text-white transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {collapsed ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              ) : (
+
+      {/* Logo/Brand Header */}
+      <div className={`${collapsed ? 'p-3' : 'p-4'}`} style={{ height: '60px' }}>
+        {collapsed ? (
+          <div className="flex items-center justify-center h-full">
+            <img 
+              src="/favicon.svg" 
+              alt="J11 Logo" 
+              width="28" 
+              height="28" 
+              className="flex-shrink-0"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center justify-between h-full">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/favicon.svg" 
+                alt="J11 Logo" 
+                width="28" 
+                height="28" 
+                className="flex-shrink-0"
+              />
+              <div>
+                <h1 className="text-lg font-bold text-white leading-tight">Joinery Eleven</h1>
+                <p className="text-gray-300 text-xs -mt-0.5">Production Manager</p>
+              </div>
+            </div>
+            <button
+              onClick={onToggleCollapse}
+              className="text-gray-300 hover:text-white transition-colors"
+              title="Collapse sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              )}
-            </svg>
-          </button>
-        </div>
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Expand button for collapsed state */}
+      {collapsed && (
+        <div className="border-b border-light-grey border-opacity-20 p-3">
+          <div className="flex justify-center">
+            <button
+              onClick={onToggleCollapse}
+              className="text-gray-300 hover:text-white transition-colors"
+              title="Expand sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Menu */}
       <nav className="flex-1 py-4">
@@ -147,12 +185,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
             <li key={item.id}>
               <button
                 onClick={() => onPageChange(item.id)}
-                className={`w-full flex items-center transition-all duration-200 ${
-                  collapsed ? 'justify-center px-3 py-3 mx-2 rounded-lg' : 'space-x-3 px-6 py-3'
+                className={`w-full flex items-center transition-all duration-200 relative ${
+                  collapsed ? 'justify-center px-3 py-3 mx-2' : 'space-x-3 py-3'
                 } ${
                   currentPage === item.id
-                    ? 'bg-primary text-white shadow-lg'
-                    : 'text-gray-300 hover:bg-primary hover:bg-opacity-80 hover:text-white'
+                    ? `bg-gray-200 text-gray-900 ${collapsed ? '' : 'border-l-4 border-orange-500 pl-5'}`
+                    : `text-gray-300 hover:bg-gray-200 hover:text-gray-900 ${collapsed ? '' : 'hover:border-l-4 hover:border-orange-500 hover:pl-5'} ${collapsed ? '' : 'pl-6'}`
                 }`}
                 title={collapsed ? item.name : undefined}
               >

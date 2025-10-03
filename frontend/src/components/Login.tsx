@@ -55,7 +55,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-charcoal flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FF661F' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="bg-white rounded-2xl shadow-2xl p-8 border border-light-grey">
           {!showForgotPassword ? (
@@ -103,15 +103,6 @@ const Login: React.FC = () => {
                     className="w-full px-4 py-3 bg-white border border-light-grey rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                     placeholder="Enter your password"
                   />
-                  <div className="text-right mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-primary hover:opacity-80 transition-colors"
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
                 </div>
 
                 {error && (
@@ -129,9 +120,20 @@ const Login: React.FC = () => {
                   size="lg"
                   loading={isLoading}
                   className="w-full"
+                  style={{ backgroundColor: '#FF661F', borderColor: '#FF661F' }}
                 >
                   Sign In
                 </Button>
+                
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:opacity-80 transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
               </form>
             </>
           ) : (
