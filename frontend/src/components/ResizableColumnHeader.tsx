@@ -14,7 +14,7 @@ const ResizableColumnHeader: React.FC<ResizableColumnHeaderProps> = ({
   width,
   onResize,
   className = '',
-  minWidth = 80,
+  minWidth = 40,
   maxWidth = 500,
 }) => {
   const [isResizing, setIsResizing] = useState(false);

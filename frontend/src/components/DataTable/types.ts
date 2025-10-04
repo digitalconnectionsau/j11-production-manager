@@ -13,7 +13,7 @@ export interface TableColumn<T = any> {
 }
 
 export interface FilterConfig {
-  type: 'text' | 'select' | 'date' | 'dateRange' | 'checkbox' | 'multiSelect';
+  type: 'text' | 'select' | 'date' | 'dateRange' | 'checkbox' | 'multiSelect' | 'toggle';
   label: string;
   key: string;
   options?: { value: string; label: string }[];
@@ -25,6 +25,12 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
+export interface MultiSortConfig {
+  field: string;
+  direction: 'asc' | 'desc';
+  priority: number;
+}
+
 export interface TableProps<T> {
   data: T[];
   columns: TableColumn<T>[];
@@ -33,11 +39,16 @@ export interface TableProps<T> {
   
   // Filtering
   filters?: FilterConfig[];
+  currentFilters?: Record<string, any>;
   onFiltersChange?: (filters: Record<string, any>) => void;
   
   // Sorting
   defaultSort?: SortConfig;
   onSortChange?: (sort: SortConfig) => void;
+  
+  // Multi-column sorting (optional)
+  multiSort?: MultiSortConfig[];
+  onMultiSortChange?: (sorts: MultiSortConfig[]) => void;
   
   // Row actions
   onRowClick?: (row: T) => void;

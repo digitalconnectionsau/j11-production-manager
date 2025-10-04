@@ -90,7 +90,52 @@ async function getUserWithPermissions(userId: number) {
   };
 }
 
-// GET /api/users - Get all users with pagination and search
+// GET /api/users/basic - Get basic user list (any authenticated user)
+router.get('/basic', async (req: AuthenticatedRequest, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    if (!decoded) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Get basic user list
+    const usersList = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        username: users.username,
+        department: users.department,
+        position: users.position,
+        phone: users.phone,
+        mobile: users.mobile,
+        isActive: users.isActive,
+        isBlocked: users.isBlocked,
+        lastLogin: users.lastLogin,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt));
+
+    res.json({
+      users: usersList.map(user => ({
+        ...user,
+        roles: [] // Simplified for now
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching basic users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// GET /api/users - Get all users with pagination and search (admin only)
 router.get('/', verifyTokenAndPermission('view_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const { page = 1, limit = 20, search = '', department = '', role = '', status = 'all' } = req.query;
@@ -222,7 +267,77 @@ router.get('/:id', verifyTokenAndPermission('view_users'), async (req: Authentic
   }
 });
 
-// POST /api/users - Create new user
+// POST /api/users/basic - Create new user (simplified, any authenticated user)
+router.post('/basic', async (req: AuthenticatedRequest, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    if (!decoded) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const {
+      email,
+      username,
+      firstName,
+      lastName,
+      password,
+      mobile,
+      department,
+      position,
+      phone,
+    } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({ error: 'Email, password, first name, and last name are required' });
+    }
+
+    // Check if email already exists
+    const existingUser = await db.select().from(users).where(eq(users.email, email));
+    if (existingUser.length > 0) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = await db
+      .insert(users)
+      .values({
+        email,
+        username,
+        firstName,
+        lastName,
+        password: hashedPassword,
+        mobile,
+        department,
+        position,
+        phone,
+        isActive: true,
+        isBlocked: false,
+      })
+      .returning();
+
+    // Remove password from response
+    const { password: _, ...userResponse } = newUser[0];
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: userResponse
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// POST /api/users - Create new user (admin only)
 router.post('/', verifyTokenAndPermission('manage_users'), async (req: AuthenticatedRequest, res) => {
   try {
     const {

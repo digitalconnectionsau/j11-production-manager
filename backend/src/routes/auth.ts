@@ -295,6 +295,8 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
     res.json({
       id: foundUser.id,
       name: fullName,
+      firstName: foundUser.firstName,
+      lastName: foundUser.lastName,
       email: foundUser.email,
       username: foundUser.username,
       role: foundUser.role,
@@ -302,6 +304,92 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Error fetching profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// PUT /api/auth/profile - Update current user profile
+router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { firstName, lastName, username, mobile, department, position, phone } = req.body;
+
+    // Validate that at least one field is provided
+    if (!firstName && !lastName && !username && !mobile && !department && !position && !phone) {
+      return res.status(400).json({ error: 'At least one field must be provided for update' });
+    }
+
+    // Check if username is already taken (if provided and different from current)
+    if (username) {
+      const existingUser = await db.select()
+        .from(users)
+        .where(and(eq(users.username, username), eq(users.id, req.user.id)))
+        .limit(1);
+      
+      if (existingUser.length === 0) {
+        const usernameExists = await db.select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1);
+        
+        if (usernameExists.length > 0) {
+          return res.status(400).json({ error: 'Username already taken' });
+        }
+      }
+    }
+
+    // Update user profile
+    const updatedUser = await db
+      .update(users)
+      .set({
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        username: username || undefined,
+        mobile: mobile || undefined,
+        department: department || undefined,
+        position: position || undefined,
+        phone: phone || undefined,
+      })
+      .where(eq(users.id, req.user.id))
+      .returning({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        username: users.username,
+        mobile: users.mobile,
+        department: users.department,
+        position: users.position,
+        phone: users.phone,
+      });
+
+    if (updatedUser.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = updatedUser[0];
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.email;
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        name: fullName,
+        email: user.email,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        mobile: user.mobile,
+        department: user.department,
+        position: user.position,
+        phone: user.phone,
+      }
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

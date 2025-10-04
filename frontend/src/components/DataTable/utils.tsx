@@ -40,7 +40,7 @@ export const getStatusStyle = (status: string): CSSProperties => {
     fontWeight: '500',
     textAlign: 'center' as const,
     display: 'inline-block',
-    minWidth: '80px'
+    minWidth: '60px'
   };
 };
 

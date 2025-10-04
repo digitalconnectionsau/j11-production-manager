@@ -189,9 +189,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
                   collapsed ? 'justify-center px-3 py-3 mx-2' : 'space-x-3 py-3'
                 } ${
                   currentPage === item.id
-                    ? `bg-gray-200 text-gray-900 ${collapsed ? '' : 'border-l-4 border-orange-500 pl-5'}`
-                    : `text-gray-300 hover:bg-gray-200 hover:text-gray-900 ${collapsed ? '' : 'hover:border-l-4 hover:border-orange-500 hover:pl-5'} ${collapsed ? '' : 'pl-6'}`
+                    ? `text-gray-300 ${collapsed ? '' : 'border-l-4 border-orange-500 pl-5'}`
+                    : `text-gray-300 ${collapsed ? '' : 'hover:border-l-4 hover:border-orange-500 hover:pl-5'} ${collapsed ? '' : 'pl-6'}`
                 }`}
+                style={{
+                  backgroundColor: currentPage === item.id ? '#212222' : 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== item.id) {
+                    e.currentTarget.style.backgroundColor = '#212222';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== item.id) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
                 title={collapsed ? item.name : undefined}
               >
                 <span className="w-6 h-6 flex items-center justify-center text-lg">

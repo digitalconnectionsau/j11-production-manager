@@ -31,7 +31,7 @@ const Button: React.FC<ButtonProps> = ({
   
   // Variant styles
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    primary: 'text-white focus:ring-orange-500',
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
     success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
@@ -50,6 +50,9 @@ const Button: React.FC<ButtonProps> = ({
     <button
       className={combinedClasses}
       disabled={disabled || loading}
+      style={variant === 'primary' ? { backgroundColor: '#FF661F' } : undefined}
+      onMouseEnter={variant === 'primary' ? (e) => e.currentTarget.style.backgroundColor = '#E55A1A' : undefined}
+      onMouseLeave={variant === 'primary' ? (e) => e.currentTarget.style.backgroundColor = '#FF661F' : undefined}
       {...props}
     >
       {loading && (

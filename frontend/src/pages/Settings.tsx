@@ -18,8 +18,20 @@ interface AppSettings {
   taskPriorities: string[];
 }
 
-const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients'>('holidays');
+interface DisplaySettings {
+  weekType: string;
+  weekStartDay: string;
+  weekCalculationBase: string;
+}
+
+interface SettingsProps {
+  initialTab?: 'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients' | 'display';
+  openProfileEdit?: boolean;
+  onProfileEditClose?: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfileEdit = false, onProfileEditClose }) => {
+  const [activeTab, setActiveTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients' | 'display'>(initialTab);
   const [appSettings, setAppSettings] = useState<AppSettings>({
     companyName: 'J11 Productions',
     companyEmail: 'info@j11productions.com',
@@ -33,6 +45,17 @@ const Settings: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Display settings state
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(() => {
+    const saved = localStorage.getItem('displaySettings');
+    return saved ? JSON.parse(saved) : {
+      weekType: 'calendar',
+      weekStartDay: 'monday',
+      weekCalculationBase: 'delivery'
+    };
+  });
+  const [displayLoading, setDisplayLoading] = useState(false);
   const systemInfo = {
     version: '1.0.0',
     environment: 'Development',
@@ -56,6 +79,27 @@ const Settings: React.FC = () => {
     }
   };
 
+  // Update display settings
+  const updateDisplaySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setDisplayLoading(true);
+      // Save to localStorage
+      localStorage.setItem('displaySettings', JSON.stringify(displaySettings));
+      
+      // Simulate API delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      setMessage({ type: 'success', text: 'Display settings saved successfully!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save display settings' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setDisplayLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'holidays', label: 'Holidays', icon: '📅' },
     { id: 'job-status', label: 'Job Status', icon: '⚡' },
@@ -63,6 +107,7 @@ const Settings: React.FC = () => {
     { id: 'import', label: 'Import', icon: '📁' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'archived-clients', label: 'Archived Clients', icon: '📋' },
+    { id: 'display', label: 'Display', icon: '📊' },
     { id: 'company', label: 'Company', icon: '🏢' },
     { id: 'system', label: 'System', icon: '⚙️' }
   ];
@@ -137,7 +182,7 @@ const Settings: React.FC = () => {
       {/* Users Tab */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <UserManagement />
+          <UserManagement openProfileEdit={openProfileEdit} onProfileEditClose={onProfileEditClose} />
         </div>
       )}
 
@@ -145,6 +190,104 @@ const Settings: React.FC = () => {
       {activeTab === 'archived-clients' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <ArchivedClientsManagement />
+        </div>
+      )}
+
+      {/* Display Tab */}
+      {activeTab === 'display' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4">Display Settings</h3>
+          
+          <form onSubmit={updateDisplaySettings}>
+            <div className="space-y-6">
+              {/* Week Separator Settings */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-3">Week Separators</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure how weeks are separated in the jobs table when the "Week Separators" toggle is enabled.
+                </p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Week Type
+                    </label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      value={displaySettings.weekType}
+                      onChange={(e) => setDisplaySettings(prev => ({ ...prev, weekType: e.target.value }))}
+                    >
+                      <option value="calendar">Calendar Week (1st-7th, 8th-14th, etc.)</option>
+                      <option value="work">Work Week (configurable start day)</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Week Start Day (for Work Week)
+                    </label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      value={displaySettings.weekStartDay}
+                      onChange={(e) => setDisplaySettings(prev => ({ ...prev, weekStartDay: e.target.value }))}
+                      disabled={displaySettings.weekType !== 'work'}
+                    >
+                      <option value="monday">Monday</option>
+                      <option value="tuesday">Tuesday</option>
+                      <option value="wednesday">Wednesday</option>
+                      <option value="thursday">Thursday</option>
+                      <option value="friday">Friday</option>
+                      <option value="saturday">Saturday</option>
+                      <option value="sunday">Sunday</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Base Week Calculation On
+                    </label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      value={displaySettings.weekCalculationBase}
+                      onChange={(e) => setDisplaySettings(prev => ({ ...prev, weekCalculationBase: e.target.value }))}
+                    >
+                      <option value="delivery">Delivery Date (Default)</option>
+                      <option value="nesting">Nesting Date</option>
+                      <option value="machining">Machining Date</option>
+                      <option value="assembly">Assembly Date</option>
+                      <option value="earliest">Earliest Date (Any Stage)</option>
+                      <option value="latest">Latest Date (Any Stage)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Choose which date to use for determining which week a job belongs to.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button
+                type="submit"
+                disabled={displayLoading}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                style={{ 
+                  backgroundColor: displayLoading ? '#9CA3AF' : '#FF661F', 
+                  borderColor: displayLoading ? '#9CA3AF' : '#FF661F'
+                }}
+                onMouseEnter={(e) => !displayLoading && ((e.target as HTMLButtonElement).style.backgroundColor = '#E55A1A')}
+                onMouseLeave={(e) => !displayLoading && ((e.target as HTMLButtonElement).style.backgroundColor = '#FF661F')}
+              >
+                {displayLoading && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>{displayLoading ? 'Saving...' : 'Save Display Settings'}</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

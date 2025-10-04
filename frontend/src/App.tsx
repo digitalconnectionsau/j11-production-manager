@@ -21,6 +21,8 @@ const AppContent: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedProjectTab, setSelectedProjectTab] = useState<'jobs' | 'info'>('jobs');
+  const [selectedSettingsTab, setSelectedSettingsTab] = useState<'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients'>('holidays');
+  const [openProfileEdit, setOpenProfileEdit] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
@@ -125,7 +127,11 @@ const AppContent: React.FC = () => {
       case 'Reports':
         return <Reports />;
       case 'Settings':
-        return <Settings />;
+        return <Settings 
+          initialTab={selectedSettingsTab} 
+          openProfileEdit={openProfileEdit} 
+          onProfileEditClose={() => setOpenProfileEdit(false)}
+        />;
       default:
         return <Dashboard />;
     }
@@ -133,6 +139,19 @@ const AppContent: React.FC = () => {
 
   const handlePageChange = (page: string) => {
     setCurrentPage(page);
+    setSelectedClientId(null);
+    setSelectedProjectId(null);
+    setSelectedJobId(null);
+    // Reset profile edit flag when navigating away from Settings
+    if (page !== 'Settings') {
+      setOpenProfileEdit(false);
+    }
+  };
+
+  const handleSettingsNavigation = (tab: 'holidays' | 'job-status' | 'lead-times' | 'import' | 'company' | 'system' | 'users' | 'archived-clients', openProfile: boolean = false) => {
+    setCurrentPage('Settings');
+    setSelectedSettingsTab(tab);
+    setOpenProfileEdit(openProfile);
     setSelectedClientId(null);
     setSelectedProjectId(null);
     setSelectedJobId(null);
@@ -152,7 +171,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-light-grey">
-      <TopBar sidebarCollapsed={sidebarCollapsed} />
+      <TopBar sidebarCollapsed={sidebarCollapsed} onPageChange={handlePageChange} onSettingsNavigation={handleSettingsNavigation} />
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={handlePageChange} 
@@ -160,7 +179,7 @@ const AppContent: React.FC = () => {
         collapsed={sidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
       />
-      <main className={`bg-white transition-all duration-300 ${
+      <main className={`bg-gray-100 transition-all duration-300 ${
         sidebarCollapsed ? 'ml-16' : 'ml-64'
       }`} style={{ 
         minHeight: 'calc(100vh - 60px)',

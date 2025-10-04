@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { DataTable } from '../components/DataTable';
-import type { TableColumn, FilterConfig, SortConfig } from '../components/DataTable';
+import type { TableColumn, FilterConfig, SortConfig, MultiSortConfig } from '../components/DataTable';
 import { createStatusRenderer, createDateRenderer } from '../components/DataTable/utils';
 import { apiRequest, API_ENDPOINTS } from '../utils/api';
 import Button from '../components/ui/Button';
@@ -37,6 +37,13 @@ interface Job {
     targetColumns?: ColumnTarget[];
   } | null;
 }
+
+interface WeekSeparator {
+  isWeekSeparator: true;
+  weekInfo: string;
+}
+
+type JobOrSeparator = Job | WeekSeparator;
 
 interface ColumnTarget {
   column: string;
@@ -86,11 +93,24 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     client: '',
     project: '',
     dateFrom: '',
-    dateTo: ''
+    dateTo: '',
+    showWeekSeparators: false,
+    hideCompleted: false
   });
   
   // Sorting state
   const [sort, setSort] = useState<SortConfig>({ field: 'id', direction: 'desc' });
+  const [multiSort, setMultiSort] = useState<MultiSortConfig[]>([]);
+  
+  // Display settings from localStorage
+  const [displaySettings] = useState(() => {
+    const saved = localStorage.getItem('displaySettings');
+    return saved ? JSON.parse(saved) : {
+      weekType: 'calendar',
+      weekStartDay: 'monday',
+      weekCalculationBase: 'delivery'
+    };
+  });
   
   // Column preferences
   const { preferences, updatePreferences } = useColumnPreferences('jobs');
@@ -108,31 +128,31 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       key: 'unit',
       label: 'Unit',
       sortable: true,
-      width: 100
+      width: 80
     },
     {
       key: 'type',
       label: 'Type',
       sortable: true,
-      width: 120
+      width: 80
     },
     {
       key: 'items',
       label: 'Items',
       sortable: true,
-      width: 200
+      width: 120
     },
     {
       key: 'clientName',
       label: 'Client',
       sortable: true,
-      width: 150
+      width: 100
     },
     {
       key: 'projectName',
       label: 'Project',
       sortable: true,
-      width: 180,
+      width: 120,
       render: (value: string, row: Job) => (
         <button
           onClick={(e) => {
@@ -149,7 +169,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       key: 'status',
       label: 'Status',
       sortable: true,
-      width: 130,
+      width: 100,
       render: (value: string, row: Job) => {
         if (row.statusInfo) {
           // Ensure colors have # prefix
@@ -186,33 +206,33 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     },
     {
       key: 'nestingDate',
-      label: 'Nesting Date',
+      label: 'Nesting',
       sortable: true,
-      width: 130,
+      width: 100,
       render: createDateRenderer(),
       cellStyle: (row: Job) => getDateCellStyle('nestingDate', row)
     },
     {
       key: 'machiningDate',
-      label: 'Machining Date',
+      label: 'Machining',
       sortable: true,
-      width: 140,
+      width: 100,
       render: createDateRenderer(),
       cellStyle: (row: Job) => getDateCellStyle('machiningDate', row)
     },
     {
       key: 'assemblyDate',
-      label: 'Assembly Date',
+      label: 'Assembly',
       sortable: true,
-      width: 140,
+      width: 100,
       render: createDateRenderer(),
       cellStyle: (row: Job) => getDateCellStyle('assemblyDate', row)
     },
     {
       key: 'deliveryDate',
-      label: 'Delivery Date',
+      label: 'Delivery',
       sortable: true,
-      width: 140,
+      width: 100,
       render: createDateRenderer(),
       cellStyle: (row: Job) => getDateCellStyle('deliveryDate', row)
     },
@@ -282,6 +302,18 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       key: 'dateTo',
       label: 'Date To', 
       type: 'date'
+    },
+    {
+      key: 'showWeekSeparators',
+      label: 'Week Separators',
+      type: 'toggle',
+      placeholder: 'Show week breaks in table'
+    },
+    {
+      key: 'hideCompleted',
+      label: 'Hide Delivered',
+      type: 'toggle',
+      placeholder: 'Hide delivered jobs'
     }
   ];
 
@@ -423,16 +455,17 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
   const filteredJobs = React.useMemo(() => {
     let filtered = jobs;
 
-    // Text search
+    // Text search - searches across ID, Unit, Type, Items, Comments, Client, and Project columns
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(job =>
+        job.id?.toString().toLowerCase().includes(searchTerm) ||
         job.unit?.toLowerCase().includes(searchTerm) ||
         job.type?.toLowerCase().includes(searchTerm) ||
         job.items?.toLowerCase().includes(searchTerm) ||
+        job.comments?.toLowerCase().includes(searchTerm) ||
         job.clientName?.toLowerCase().includes(searchTerm) ||
-        job.projectName?.toLowerCase().includes(searchTerm) ||
-        job.comments?.toLowerCase().includes(searchTerm)
+        job.projectName?.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -453,6 +486,9 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
 
     // Date range filter (using any date column)
     if (filters.dateFrom || filters.dateTo) {
+      console.log('Date filtering active:', { dateFrom: filters.dateFrom, dateTo: filters.dateTo });
+      console.log('Jobs before date filter:', filtered.length);
+      
       filtered = filtered.filter(job => {
         const dates = [
           job.nestingDate,
@@ -461,16 +497,139 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
           job.deliveryDate
         ].filter(Boolean).map(date => new Date(date!));
 
-        if (dates.length === 0) return false;
+        if (dates.length === 0) {
+          console.log('Job', job.id, 'has no dates, excluding');
+          return false;
+        }
 
         const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
 
-        if (filters.dateFrom && minDate < new Date(filters.dateFrom)) return false;
-        if (filters.dateTo && maxDate > new Date(filters.dateTo)) return false;
+        console.log('Job', job.id, 'dates:', { minDate, maxDate, dateFrom: filters.dateFrom, dateTo: filters.dateTo });
 
+        if (filters.dateFrom && minDate < new Date(filters.dateFrom)) {
+          console.log('Job', job.id, 'excluded: minDate', minDate, 'before dateFrom', new Date(filters.dateFrom));
+          return false;
+        }
+        if (filters.dateTo && maxDate > new Date(filters.dateTo)) {
+          console.log('Job', job.id, 'excluded: maxDate', maxDate, 'after dateTo', new Date(filters.dateTo));
+          return false;
+        }
+
+        console.log('Job', job.id, 'included in date filter');
         return true;
       });
+      
+      console.log('Jobs after date filter:', filtered.length);
+    }
+
+    // Hide completed filter - only hide "delivered" jobs
+    if (filters.hideCompleted) {
+      filtered = filtered.filter(job => {
+        const isDelivered = 
+          job.status?.toLowerCase() === 'delivered' ||
+          job.statusInfo?.name?.toLowerCase() === 'delivered' ||
+          job.statusInfo?.displayName?.toLowerCase() === 'delivered';
+        
+        return !isDelivered;
+      });
+    }
+
+    // Add week separators if enabled
+    if (filters.showWeekSeparators && (filters.dateFrom || filters.dateTo)) {
+      const jobsWithSeparators: (Job | { isWeekSeparator: true; weekInfo: string })[] = [];
+      
+      // Helper function to get the date to use for calculations based on settings
+      const getCalculationDate = (job: Job) => {
+        let dateToUse: string | null = null;
+        
+        // Use the date column specified in display settings
+        switch (displaySettings.weekCalculationBase) {
+          case 'nesting':
+            dateToUse = job.nestingDate;
+            break;
+          case 'machining':
+            dateToUse = job.machiningDate;
+            break;
+          case 'assembly':
+            dateToUse = job.assemblyDate;
+            break;
+          case 'delivery':
+          default:
+            dateToUse = job.deliveryDate;
+            break;
+        }
+        
+        return dateToUse ? new Date(dateToUse) : null;
+      };
+
+      // Helper function to get week start date based on settings
+      const getWeekStart = (date: Date) => {
+        const d = new Date(date);
+        const day = d.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const diff = displaySettings.weekStartDay === 'monday' 
+          ? (day === 0 ? -6 : 1 - day)  // Monday start
+          : -day;                        // Sunday start
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      // Helper function to get week identifier
+      const getWeekIdentifier = (date: Date) => {
+        if (displaySettings.weekType === 'workWeek') {
+          // Work week: Monday-Friday
+          const weekStart = getWeekStart(date);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 4); // Friday
+          return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+        } else {
+          // Calendar week: full 7 days
+          const weekStart = getWeekStart(date);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+        }
+      };
+
+      // Sort jobs by their calculation date for proper week grouping
+      const sortedJobs = [...filtered].sort((a, b) => {
+        const dateA = getCalculationDate(a);
+        const dateB = getCalculationDate(b);
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
+      });
+
+      let currentWeekIdentifier = '';
+
+      sortedJobs.forEach((job) => {
+        const calculationDate = getCalculationDate(job);
+        
+        if (!calculationDate) {
+          jobsWithSeparators.push(job);
+          return;
+        }
+        
+        const weekIdentifier = getWeekIdentifier(calculationDate);
+        
+        // If this is a new week, add a separator
+        if (currentWeekIdentifier !== weekIdentifier) {
+          if (currentWeekIdentifier !== '') {
+            // Add separator between weeks
+            jobsWithSeparators.push({
+              isWeekSeparator: true,
+              weekInfo: `Week of ${weekIdentifier}`
+            });
+          }
+          currentWeekIdentifier = weekIdentifier;
+        }
+        
+        jobsWithSeparators.push(job);
+      });
+
+      return jobsWithSeparators;
     }
 
     return filtered;
@@ -478,7 +637,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto px-4 py-8">
+      <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
           <Button variant="primary">
@@ -495,15 +654,43 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
           />
         )}
 
+        {multiSort.length > 0 && (
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-sm text-gray-600 flex items-center space-x-2">
+              <span>Multi-sort active:</span>
+              {multiSort.map((sort) => (
+                <span key={sort.field} className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">
+                  {sort.priority}. {columns.find(col => col.key === sort.field)?.label} {sort.direction === 'asc' ? '↑' : '↓'}
+                </span>
+              ))}
+            </div>
+            <button 
+              onClick={() => setMultiSort([])}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Clear all sorts
+            </button>
+          </div>
+        )}
+        
+        <div className="mb-2">
+          <div className="text-xs text-gray-500">
+            💡 Tip: Click column headers to sort. Hold Ctrl/Cmd + click to add multiple sorts.
+          </div>
+        </div>
+
         <DataTable
-          data={filteredJobs}
+          data={filteredJobs as any}
           columns={columns}
           loading={loading}
           error={error}
           filters={filterConfigs}
+          currentFilters={filters}
           onFiltersChange={setFilters}
           defaultSort={sort}
           onSortChange={setSort}
+          multiSort={multiSort}
+          onMultiSortChange={setMultiSort}
           onRowClick={handleRowClick}
           columnPreferences={preferences}
           onColumnPreferencesChange={updatePreferences}
