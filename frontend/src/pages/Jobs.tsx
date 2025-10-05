@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ProtectedRoute from '../components/ProtectedRoute';
 import AddJobModal from '../components/AddJobModal';
+import PageHeader from '../components/PageHeader';
 
 interface Job {
   id: number;
@@ -853,14 +854,14 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
 
   return (
     <ProtectedRoute>
-      <div className="p-6 print:p-0">
-        <div className="flex justify-between items-center mb-6 print:mb-2">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 print:text-xl print:mb-1">Jobs</h1>
-            <div className="hidden print:block text-sm text-gray-600 mt-1">
-              {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
-            </div>
-          </div>
+      <PageHeader
+        title="Jobs"
+        description="Manage and track all production jobs across different projects. Monitor progress, update statuses, and coordinate delivery schedules."
+        breadcrumbs={[
+          { label: 'Dashboard', onClick: () => {} },
+          { label: 'Jobs' }
+        ]}
+        actions={
           <div className="flex items-center space-x-3 print:hidden">
             <Button 
               variant="secondary" 
@@ -887,6 +888,12 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
               Add New Job
             </Button>
           </div>
+        }
+      />
+      
+      <div className="px-6 print:p-0">
+        <div className="hidden print:block text-sm text-gray-600 mb-4">
+          {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
         </div>
 
         {error && (
