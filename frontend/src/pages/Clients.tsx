@@ -83,7 +83,11 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
   };
 
   // Helper function for status cell styling
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (status: string | undefined | null) => {
+    if (!status || typeof status !== 'string') {
+      return { backgroundColor: '#f3f4f6', textColor: '#374151' }; // gray-100/gray-800
+    }
+    
     switch (status.toLowerCase()) {
       case 'active':
         return { backgroundColor: '#dcfce7', textColor: '#166534' }; // green-100/green-800
