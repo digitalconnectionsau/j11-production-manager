@@ -82,6 +82,18 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
     );
   };
 
+  // Helper function for status cell styling
+  const getStatusInfo = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return { backgroundColor: '#dcfce7', textColor: '#166534' }; // green-100/green-800
+      case 'inactive':
+        return { backgroundColor: '#f3f4f6', textColor: '#374151' }; // gray-100/gray-800
+      default:
+        return { backgroundColor: '#f3f4f6', textColor: '#374151' }; // gray-100/gray-800
+    }
+  };
+
   // Column definitions for DataTable
   const columns: TableColumn[] = [
     {
@@ -123,15 +135,11 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
       label: 'Status',
       sortable: true,
       width: 100,
-      render: (value: string, _row: Client) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-          value === 'Active' 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
-        </span>
-      )
+      cellStyle: (value: string) => ({
+        backgroundColor: getStatusInfo(value).backgroundColor,
+        color: getStatusInfo(value).textColor
+      }),
+      render: (value: string) => value
     },
     {
       key: 'projects',
