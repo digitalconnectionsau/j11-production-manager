@@ -1,4 +1,0 @@
-Unit,Type,Items,Project Name,Nesting,Machining,Assembly,Delivery,Status
-001,Component,Frontend Components,Website Redesign,Completed,In Progress,Not Started,Not Started,Machining
-002,Module,User Authentication,Mobile App,Completed,Completed,In Progress,Not Started,Assembly
-003,System,Data Migration Scripts,Database Migration,Not Started,Not Started,Not Started,Not Started,Planning

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { useTableShare } from '../hooks/useTableShare';
@@ -9,6 +9,7 @@ import { apiRequest, API_ENDPOINTS } from '../utils/api';
 import Button from '../components/ui/Button';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ProtectedRoute from '../components/ProtectedRoute';
+import AddJobModal from '../components/AddJobModal';
 
 interface Job {
   id: number;
@@ -87,6 +88,7 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddJobModal, setShowAddJobModal] = useState(false);
   
   // Filters state
   const [filters, setFilters] = useState<Record<string, any>>({
@@ -553,9 +555,8 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
     return {};
   };
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
+  // Load data function
+  const loadData = useCallback(async () => {
       try {
         setLoading(true);
         
@@ -590,12 +591,14 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
       } finally {
         setLoading(false);
       }
-    };
+    }, [token]);
 
+  // Load data on component mount and when token changes
+  useEffect(() => {
     if (token) {
       loadData();
     }
-  }, [token]);
+  }, [loadData, token]);
 
   // Handle status click to cycle through statuses
   const handleStatusClick = async (e: React.MouseEvent, job: Job) => {
@@ -870,7 +873,10 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
             >
               🖨️ Print
             </Button>
-            <Button variant="primary">
+            <Button 
+              variant="primary"
+              onClick={() => setShowAddJobModal(true)}
+            >
               Add New Job
             </Button>
           </div>
@@ -931,6 +937,17 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
           emptySubMessage="Try adjusting your filters or create a new job"
         />
       </div>
+
+      {/* Add Job Modal */}
+      <AddJobModal 
+        isOpen={showAddJobModal}
+        onClose={() => setShowAddJobModal(false)}
+        onJobAdded={() => {
+          setShowAddJobModal(false);
+          loadData(); // Reload jobs after adding a new one
+        }}
+        projects={projects}
+      />
     </ProtectedRoute>
   );
 }

@@ -213,7 +213,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
                   step.completed 
                     ? 'bg-green-600' 
                     : step.active 
-                      ? 'border-2 border-blue-600 bg-white' 
+                      ? 'border-2 border-orange-600 bg-white' 
                       : 'border-2 border-gray-300 bg-white'
                 }`}>
                   {step.completed ? (
@@ -222,7 +222,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
                     </svg>
                   ) : (
                     <span className={`text-sm font-medium ${
-                      step.active ? 'text-blue-600' : 'text-gray-500'
+                      step.active ? 'text-orange-600' : 'text-gray-500'
                     }`}>
                       {step.id}
                     </span>
@@ -230,7 +230,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
                 </div>
                 <div className="ml-4 min-w-0">
                   <p className={`text-sm font-medium ${
-                    step.active ? 'text-blue-600' : step.completed ? 'text-green-600' : 'text-gray-500'
+                    step.active ? 'text-orange-600' : step.completed ? 'text-green-600' : 'text-gray-500'
                   }`}>
                     {step.title}
                   </p>
@@ -264,7 +264,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
               onClick={() => setImportType(type.id as ImportType)}
               className={`p-4 border rounded-lg cursor-pointer transition-all ${
                 importType === type.id
-                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                  ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
             >
@@ -281,7 +281,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       <div className="flex justify-end">
         <button
           onClick={() => setCurrentStep(2)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
           Next Step
         </button>
@@ -302,7 +302,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         <div 
           className={`border-2 border-dashed rounded-lg p-8 transition-colors ${
             isDragOver 
-              ? 'border-blue-500 bg-blue-50' 
+              ? 'border-orange-500 bg-orange-50' 
               : 'border-gray-300'
           }`}
           onDragOver={handleDragOver}
@@ -312,7 +312,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
           <div className="text-center">
             {isProcessing ? (
               <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
                 <p className="mt-4 text-sm text-gray-600">Processing CSV file...</p>
               </div>
             ) : (
@@ -376,7 +376,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         <button
           onClick={() => setCurrentStep(3)}
           disabled={!file || !csvData || isProcessing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
           {isProcessing ? 'Processing...' : 'Next Step'}
         </button>
@@ -398,7 +398,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
             {!importType && (
               <button
                 onClick={() => setCurrentStep(1)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Select Import Type
               </button>
@@ -406,7 +406,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
             {!csvData && importType && (
               <button
                 onClick={() => setCurrentStep(2)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Upload CSV File
               </button>
@@ -501,7 +501,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
                     <select
                       value={getMappedField(header)}
                       onChange={(e) => handleColumnMapping(header, e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
                     >
                       <option value="">-- Select Field --</option>
                       <optgroup label="Required Fields">
@@ -556,7 +556,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         <div className="flex justify-between">
           <button
             onClick={() => setCurrentStep(2)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
           >
             Previous
           </button>
@@ -565,7 +565,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
             disabled={!canProceed}
             className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
               canProceed
-                ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                ? 'bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500'
                 : 'bg-gray-300 cursor-not-allowed'
             }`}
           >
@@ -655,9 +655,9 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-2xl font-bold text-blue-600">{csvData.rows.length}</div>
-            <div className="text-sm text-blue-600">Total Rows</div>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="text-2xl font-bold text-orange-600">{csvData.rows.length}</div>
+            <div className="text-sm text-orange-600">Total Rows</div>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="text-2xl font-bold text-green-600">{validRows}</div>
@@ -726,7 +726,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowAllPreviewRows(!showAllPreviewRows)}
-                className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 rounded font-medium transition-colors"
+                className="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-800 rounded font-medium transition-colors"
               >
                 {showAllPreviewRows ? 'Show Paginated' : 'Show All'}
               </button>
@@ -929,23 +929,23 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
         </div>
 
         {/* Import Summary */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h4 className="font-medium text-blue-800 mb-4">Import Summary</h4>
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+          <h4 className="font-medium text-orange-800 mb-4">Import Summary</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-blue-600 font-medium">Import Type:</span>
+              <span className="text-orange-600 font-medium">Import Type:</span>
               <span className="ml-2 capitalize">{importType}</span>
             </div>
             <div>
-              <span className="text-blue-600 font-medium">File:</span>
+              <span className="text-orange-600 font-medium">File:</span>
               <span className="ml-2">{file?.name}</span>
             </div>
             <div>
-              <span className="text-blue-600 font-medium">Total Rows:</span>
+              <span className="text-orange-600 font-medium">Total Rows:</span>
               <span className="ml-2">{csvData.rows.length}</span>
             </div>
             <div>
-              <span className="text-blue-600 font-medium">Columns Mapped:</span>
+              <span className="text-orange-600 font-medium">Columns Mapped:</span>
               <span className="ml-2">{Object.keys(columnMapping).length}</span>
             </div>
           </div>
@@ -1044,8 +1044,8 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
             )}
             {importResults.clientsCreated && (
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{importResults.clientsCreated}</div>
-                <div className="text-sm text-blue-700">Clients Created</div>
+                <div className="text-2xl font-bold text-orange-600">{importResults.clientsCreated}</div>
+                <div className="text-sm text-orange-700">Clients Created</div>
               </div>
             )}
             {importResults.projectsCreated && (
@@ -1079,9 +1079,9 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
 
         {/* Smart Import Details */}
         {(importResults.clientsCreated || importResults.projectsCreated) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h4 className="font-medium text-blue-800 mb-4">✨ Smart Import Summary</h4>
-            <div className="text-sm text-blue-700 space-y-2">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <h4 className="font-medium text-orange-800 mb-4">✨ Smart Import Summary</h4>
+            <div className="text-sm text-orange-700 space-y-2">
               {importResults.clientsCreated && (
                 <p>• Created {importResults.clientsCreated} new clients that didn't exist</p>
               )}
@@ -1109,7 +1109,7 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
               setPreviewCurrentPage(1);
               setShowAllPreviewRows(false);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             Import Another File
           </button>
@@ -1146,9 +1146,9 @@ const ImportManagement: React.FC<ImportManagementProps> = () => {
       </div>
 
       {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-medium text-blue-800 mb-2">Import Guidelines</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <h4 className="font-medium text-orange-800 mb-2">Import Guidelines</h4>
+        <ul className="text-sm text-orange-700 space-y-1">
           <li>• CSV files should have headers in the first row</li>
           <li>• Dates should be in DD/MM/YYYY format</li>
           <li>• For jobs import, ensure projects and clients exist first</li>

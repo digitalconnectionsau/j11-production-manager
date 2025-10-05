@@ -437,7 +437,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
     return (
       <div className="flex justify-center items-center py-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading user information...</p>
         </div>
       </div>
@@ -456,7 +456,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
             </div>
             <button
               onClick={handleAddUser}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+              className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 flex items-center space-x-2"
             >
               <span>+</span>
               <span>Add User</span>
@@ -474,7 +474,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
             {currentUserProfile && (
               <button
                 onClick={handleEditProfile}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -556,13 +556,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -572,7 +572,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="">All Departments</option>
             {uniqueDepartments.map(dept => (
@@ -646,7 +646,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                       {user.roles.map((role) => (
                         <span
                           key={role.roleId}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
                         >
                           {role.roleDisplayName}
                         </span>
@@ -663,7 +663,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleEditUser(user)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-orange-600 hover:text-orange-900"
                       >
                         Edit
                       </button>
@@ -708,7 +708,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -720,7 +720,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -732,7 +732,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -744,7 +744,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="tel"
                     value={formData.mobile}
                     onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -756,7 +756,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -768,7 +768,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
@@ -780,7 +780,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -834,7 +834,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     required
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -847,7 +847,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     required
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -860,7 +860,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -872,7 +872,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -886,7 +886,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                       required
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 )}
@@ -899,7 +899,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -911,7 +911,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="text"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -923,7 +923,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="tel"
                     value={formData.mobile}
                     onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 
@@ -935,7 +935,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -957,7 +957,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                             setFormData({ ...formData, roleIds: formData.roleIds.filter(id => id !== role.id) });
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                       />
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900">{role.displayName}</div>
@@ -977,7 +977,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                       type="checkbox"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                     />
                     <span className="ml-2 text-sm text-gray-700">Active</span>
                   </label>
@@ -1006,7 +1006,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ openProfileEdit = false
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md hover:bg-orange-700"
                 >
                   {selectedUser ? 'Update User' : 'Create User'}
                 </button>

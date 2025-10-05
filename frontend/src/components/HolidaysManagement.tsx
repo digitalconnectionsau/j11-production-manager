@@ -164,12 +164,12 @@ const HolidaysManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Icon name="calendar" size={24} className="text-blue-600" />
+          <Icon name="calendar" size={24} className="text-orange-600" />
           <h2 className="text-2xl font-bold text-gray-900">Holidays Management</h2>
         </div>
         <button
           onClick={() => setIsAddingHoliday(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
         >
           <Icon name="plus" size={16} className="text-white" />
           Add Holiday
@@ -191,7 +191,7 @@ const HolidaysManagement: React.FC = () => {
           id="year-select"
           value={selectedYear}
           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
           {years.map(year => (
             <option key={year} value={year}>
@@ -214,7 +214,7 @@ const HolidaysManagement: React.FC = () => {
                 type="text"
                 value={newHoliday.name}
                 onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 placeholder="e.g., Company Day Off"
               />
             </div>
@@ -226,7 +226,7 @@ const HolidaysManagement: React.FC = () => {
                 type="date"
                 value={newHoliday.date}
                 onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -236,7 +236,7 @@ const HolidaysManagement: React.FC = () => {
                 type="checkbox"
                 checked={newHoliday.isPublic}
                 onChange={(e) => setNewHoliday({ ...newHoliday, isPublic: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
               />
               <span className="text-sm text-gray-700">Public Holiday</span>
             </label>
@@ -254,7 +254,7 @@ const HolidaysManagement: React.FC = () => {
             </button>
             <button
               onClick={handleAddHoliday}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
             >
               <Icon name="check" size={16} className="text-white" />
               Add Holiday
@@ -267,7 +267,7 @@ const HolidaysManagement: React.FC = () => {
       <div className="bg-white rounded-lg border border-gray-200">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
             <p className="mt-2 text-gray-600">Loading holidays...</p>
           </div>
         ) : sortedHolidays.length === 0 ? (
@@ -303,7 +303,7 @@ const HolidaysManagement: React.FC = () => {
                           type="text"
                           value={editingHoliday.name}
                           onChange={(e) => setEditingHoliday({ ...editingHoliday, name: e.target.value })}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                         />
                       ) : (
                         <div className="text-sm font-medium text-gray-900">{holiday.name}</div>
@@ -315,7 +315,7 @@ const HolidaysManagement: React.FC = () => {
                           type="date"
                           value={editingHoliday.date}
                           onChange={(e) => setEditingHoliday({ ...editingHoliday, date: e.target.value })}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
                         />
                       ) : (
                         <div className="text-sm text-gray-900">{formatDate(holiday.date)}</div>
@@ -328,7 +328,7 @@ const HolidaysManagement: React.FC = () => {
                             type="checkbox"
                             checked={editingHoliday.isPublic}
                             onChange={(e) => setEditingHoliday({ ...editingHoliday, isPublic: e.target.checked })}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                           />
                           <span className="text-sm text-gray-700">Public</span>
                         </label>
@@ -336,7 +336,7 @@ const HolidaysManagement: React.FC = () => {
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           holiday.isPublic 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
+                            : 'bg-orange-100 text-orange-800'
                         }`}>
                           {holiday.isPublic ? 'Public Holiday' : 'Custom Holiday'}
                         </span>
@@ -362,9 +362,9 @@ const HolidaysManagement: React.FC = () => {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => setEditingHoliday(holiday)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-orange-600 hover:text-orange-800"
                           >
-                            <Icon name="edit" size={16} className="text-blue-600" />
+                            <Icon name="edit" size={16} className="text-orange-600" />
                           </button>
                           {holiday.isCustom && (
                             <button

@@ -140,7 +140,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-orange-500 text-orange-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -305,7 +305,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                   type="text"
                   value={appSettings.companyName}
                   onChange={(e) => setAppSettings({...appSettings, companyName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
@@ -316,7 +316,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                   type="email"
                   value={appSettings.companyEmail}
                   onChange={(e) => setAppSettings({...appSettings, companyEmail: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
@@ -327,7 +327,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                   type="tel"
                   value={appSettings.companyPhone}
                   onChange={(e) => setAppSettings({...appSettings, companyPhone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
               <div>
@@ -337,7 +337,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                 <select
                   value={appSettings.currency}
                   onChange={(e) => setAppSettings({...appSettings, currency: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="USD">USD - US Dollar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -355,14 +355,14 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                 value={appSettings.companyAddress}
                 onChange={(e) => setAppSettings({...appSettings, companyAddress: e.target.value})}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             <div className="mt-6">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
               >
                 {loading ? 'Updating...' : 'Update Company Settings'}
               </button>
@@ -385,7 +385,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                 <select
                   value={appSettings.timezone}
                   onChange={(e) => setAppSettings({...appSettings, timezone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <optgroup label="Queensland">
                     <option value="Australia/Brisbane">Brisbane (AEST/AEDT)</option>
@@ -424,7 +424,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                 <select
                   value={appSettings.dateFormat}
                   onChange={(e) => setAppSettings({...appSettings, dateFormat: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="DD/MM/YYYY">DD/MM/YYYY (Australian Standard)</option>
                   <option value="MM/DD/YYYY">MM/DD/YYYY (US Format)</option>
@@ -445,7 +445,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
                 <select
                   value={appSettings.currency}
                   onChange={(e) => setAppSettings({...appSettings, currency: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="AUD">Australian Dollar (AUD)</option>
                   <option value="USD">US Dollar (USD)</option>
@@ -458,7 +458,7 @@ const Settings: React.FC<SettingsProps> = ({ initialTab = 'holidays', openProfil
               <button
                 onClick={updateCompanySettings}
                 disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Save Regional Settings'}
               </button>

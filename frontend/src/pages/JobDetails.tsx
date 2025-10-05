@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { calculateJobDates, type LeadTime, type JobStatus } from '../utils/dateCalculations';
 
 interface Job {
   id: number;
@@ -36,6 +37,9 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [leadTimes, setLeadTimes] = useState<LeadTime[]>([]);
+  const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -92,6 +96,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
 
   useEffect(() => {
     fetchJob();
+    fetchLeadTimes();
+    fetchJobStatuses();
   }, [jobId]);
 
   // Helper function to parse DD/MM/YYYY format dates
@@ -134,6 +140,82 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
       setError(err instanceof Error ? err.message : 'Failed to fetch job');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch lead times
+  const fetchLeadTimes = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/lead-times`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch lead times');
+      }
+
+      const data = await response.json();
+      setLeadTimes(data);
+    } catch (err) {
+      console.error('Error fetching lead times:', err);
+    }
+  };
+
+  // Fetch job statuses
+  const fetchJobStatuses = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/job-statuses`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch job statuses');
+      }
+
+      const data = await response.json();
+      setJobStatuses(data);
+    } catch (err) {
+      console.error('Error fetching job statuses:', err);
+    }
+  };
+
+  // Calculate dates based on delivery date and lead times
+  const handleCalculateDates = async () => {
+    if (!editForm.deliveryDate) {
+      alert('Please enter a delivery date first');
+      return;
+    }
+
+    try {
+      setCalculating(true);
+      
+      // Ensure we have lead times and job statuses
+      if (leadTimes.length === 0) {
+        await fetchLeadTimes();
+      }
+      if (jobStatuses.length === 0) {
+        await fetchJobStatuses();
+      }
+
+      const calculatedDates = calculateJobDates(editForm.deliveryDate, leadTimes, jobStatuses);
+      
+      // Update the edit form with calculated dates
+      setEditForm(prev => ({
+        ...prev,
+        ...calculatedDates
+      }));
+
+    } catch (err) {
+      console.error('Error calculating dates:', err);
+      alert('Failed to calculate dates. Please try again.');
+    } finally {
+      setCalculating(false);
     }
   };
 
@@ -322,7 +404,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Edit Job</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Job Information - All in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Unit
@@ -348,54 +431,73 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                   placeholder="e.g. B1.28/29, All Units, SPA"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Items *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.items || ''}
+                  onChange={(e) => setEditForm({ ...editForm, items: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="e.g. Substrates, Kitchen & Butlers"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={editForm.status || ''}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {statusOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Items *
-              </label>
-              <input
-                type="text"
-                value={editForm.items || ''}
-                onChange={(e) => setEditForm({ ...editForm, items: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="e.g. Substrates, Kitchen & Butlers"
-                required
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                value={editForm.status || ''}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Date Fields - All in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nesting Date
                 </label>
-                <input
-                  type="text"
-                  value={editForm.nestingDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, nestingDate: e.target.value })}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                    isDateValid('nestingDate') ? 'border-gray-300' : 'border-red-300'
-                  }`}
-                  placeholder="DD/MM/YYYY"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={editForm.nestingDate || ''}
+                    onChange={(e) => setEditForm({ ...editForm, nestingDate: e.target.value })}
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      isDateValid('nestingDate') ? 'border-gray-300' : 'border-red-300'
+                    }`}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <input
+                    type="date"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const date = new Date(e.target.value);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        setEditForm({ ...editForm, nestingDate: `${day}/${month}/${year}` });
+                      }
+                    }}
+                    className="absolute right-1 top-1 w-8 h-8 opacity-0 cursor-pointer"
+                    title="Choose date"
+                  />
+                  <div className="absolute right-2 top-2 pointer-events-none">
+                    📅
+                  </div>
+                </div>
                 {!isDateValid('nestingDate') && (
                   <p className="text-red-500 text-xs mt-1">Please use DD/MM/YYYY format</p>
                 )}
@@ -405,35 +507,71 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Machining Date
                 </label>
-                <input
-                  type="text"
-                  value={editForm.machiningDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, machiningDate: e.target.value })}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                    isDateValid('machiningDate') ? 'border-gray-300' : 'border-red-300'
-                  }`}
-                  placeholder="DD/MM/YYYY"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={editForm.machiningDate || ''}
+                    onChange={(e) => setEditForm({ ...editForm, machiningDate: e.target.value })}
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      isDateValid('machiningDate') ? 'border-gray-300' : 'border-red-300'
+                    }`}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <input
+                    type="date"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const date = new Date(e.target.value);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        setEditForm({ ...editForm, machiningDate: `${day}/${month}/${year}` });
+                      }
+                    }}
+                    className="absolute right-1 top-1 w-8 h-8 opacity-0 cursor-pointer"
+                    title="Choose date"
+                  />
+                  <div className="absolute right-2 top-2 pointer-events-none">
+                    📅
+                  </div>
+                </div>
                 {!isDateValid('machiningDate') && (
                   <p className="text-red-500 text-xs mt-1">Please use DD/MM/YYYY format</p>
                 )}
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assembly Date
                 </label>
-                <input
-                  type="text"
-                  value={editForm.assemblyDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, assemblyDate: e.target.value })}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                    isDateValid('assemblyDate') ? 'border-gray-300' : 'border-red-300'
-                  }`}
-                  placeholder="DD/MM/YYYY"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={editForm.assemblyDate || ''}
+                    onChange={(e) => setEditForm({ ...editForm, assemblyDate: e.target.value })}
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      isDateValid('assemblyDate') ? 'border-gray-300' : 'border-red-300'
+                    }`}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <input
+                    type="date"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const date = new Date(e.target.value);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        setEditForm({ ...editForm, assemblyDate: `${day}/${month}/${year}` });
+                      }
+                    }}
+                    className="absolute right-1 top-1 w-8 h-8 opacity-0 cursor-pointer"
+                    title="Choose date"
+                  />
+                  <div className="absolute right-2 top-2 pointer-events-none">
+                    📅
+                  </div>
+                </div>
                 {!isDateValid('assemblyDate') && (
                   <p className="text-red-500 text-xs mt-1">Please use DD/MM/YYYY format</p>
                 )}
@@ -443,19 +581,53 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Delivery Date
                 </label>
-                <input
-                  type="text"
-                  value={editForm.deliveryDate || ''}
-                  onChange={(e) => setEditForm({ ...editForm, deliveryDate: e.target.value })}
-                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                    isDateValid('deliveryDate') ? 'border-gray-300' : 'border-red-300'
-                  }`}
-                  placeholder="DD/MM/YYYY"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={editForm.deliveryDate || ''}
+                    onChange={(e) => setEditForm({ ...editForm, deliveryDate: e.target.value })}
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                      isDateValid('deliveryDate') ? 'border-gray-300' : 'border-red-300'
+                    }`}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <input
+                    type="date"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const date = new Date(e.target.value);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        setEditForm({ ...editForm, deliveryDate: `${day}/${month}/${year}` });
+                      }
+                    }}
+                    className="absolute right-1 top-1 w-8 h-8 opacity-0 cursor-pointer"
+                    title="Choose date"
+                  />
+                  <div className="absolute right-2 top-2 pointer-events-none">
+                    📅
+                  </div>
+                </div>
                 {!isDateValid('deliveryDate') && (
                   <p className="text-red-500 text-xs mt-1">Please use DD/MM/YYYY format</p>
                 )}
               </div>
+            </div>
+
+            {/* Calculate Dates Button */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={handleCalculateDates}
+                disabled={calculating || !editForm.deliveryDate}
+                className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {calculating ? 'Calculating...' : 'Calculate Dates'}
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                This will calculate all production dates based on your delivery date and configured lead times
+              </p>
             </div>
 
             <div className="mb-4">
@@ -499,7 +671,20 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Job Information</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* All job info in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Unit</label>
+                <p className="text-sm text-gray-900 mt-1">{job.unit || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <p className="text-sm text-gray-900 mt-1">{job.type || 'Not specified'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Items</label>
+                <p className="text-sm text-gray-900 mt-1">{job.items}</p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Status (click to cycle)</label>
                 <button
@@ -511,19 +696,6 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                   {saving ? 'Updating...' : getStatusLabel(job.status)}
                 </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Unit</label>
-                <p className="text-sm text-gray-900 mt-1">{job.unit || 'Not specified'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <p className="text-sm text-gray-900 mt-1">{job.type || 'Not specified'}</p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Items</label>
-              <p className="text-sm text-gray-900 mt-1">{job.items}</p>
             </div>
 
             {job.comments && (
@@ -538,7 +710,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Schedule</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* All dates in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nesting Date</label>
                 <p className="text-sm text-gray-900 mt-1">{formatDate(job.nestingDate || '')}</p>

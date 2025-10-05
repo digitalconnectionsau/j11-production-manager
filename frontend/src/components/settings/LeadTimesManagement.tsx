@@ -157,7 +157,7 @@ const LeadTimesManagement: React.FC<LeadTimesManagementProps> = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
         <span className="ml-2 text-gray-600">Loading lead times...</span>
       </div>
     );
@@ -252,14 +252,14 @@ const LeadTimesManagement: React.FC<LeadTimesManagementProps> = () => {
                         max="365"
                         value={leadTime.days}
                         onChange={(e) => updateLeadTime(leadTime.id, { days: parseInt(e.target.value) || 0 })}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={leadTime.direction}
                         onChange={(e) => updateLeadTime(leadTime.id, { direction: e.target.value as 'before' | 'after' })}
-                        className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500"
                       >
                         <option value="before">Before</option>
                         <option value="after">After</option>
@@ -269,7 +269,7 @@ const LeadTimesManagement: React.FC<LeadTimesManagementProps> = () => {
                       <select
                         value={leadTime.toStatusId}
                         onChange={(e) => updateLeadTime(leadTime.id, { toStatusId: parseInt(e.target.value) })}
-                        className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500"
                       >
                         {statuses.map((status) => (
                           <option key={status.id} value={status.id}>
@@ -284,7 +284,7 @@ const LeadTimesManagement: React.FC<LeadTimesManagementProps> = () => {
                           type="checkbox"
                           checked={leadTime.isActive}
                           onChange={(e) => updateLeadTime(leadTime.id, { isActive: e.target.checked })}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                         />
                         <span className="ml-2 text-sm text-gray-700">Active</span>
                       </label>
@@ -298,14 +298,14 @@ const LeadTimesManagement: React.FC<LeadTimesManagementProps> = () => {
       </div>
 
       {/* Example Calculation */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-medium text-blue-900 mb-2">Example Calculation</h4>
-        <p className="text-blue-800 text-sm">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <h4 className="font-medium text-orange-900 mb-2">Example Calculation</h4>
+        <p className="text-orange-800 text-sm">
           If delivery is scheduled for <strong>July 14th</strong> and Assembly is set to 
           <strong> 2 days before Delivery</strong>, then Assembly would be scheduled for 
           <strong> July 12th</strong> (or the previous working day if July 12th falls on a weekend or holiday).
         </p>
-        <p className="text-blue-700 text-xs mt-2">
+        <p className="text-orange-700 text-xs mt-2">
           Note: Actual job scheduling will account for weekends and holidays automatically.
         </p>
       </div>

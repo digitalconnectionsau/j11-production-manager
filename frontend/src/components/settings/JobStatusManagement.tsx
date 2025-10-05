@@ -220,7 +220,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
         </div>
         <button
           onClick={handleAddStatus}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
         >
           Add Status
         </button>
@@ -258,7 +258,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
               value={formData.displayName}
               onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               placeholder="e.g., In Progress"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -286,7 +286,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                     type="text"
                     value={customColor}
                     onChange={(e) => handleCustomColorChange(e)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="#1976d2"
                     pattern="^#[0-9A-Fa-f]{6}$"
                   />
@@ -382,7 +382,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                     targetColumns: [...formData.targetColumns, { column: 'nesting', color: '#1976d2' }]
                   });
                 }}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -407,7 +407,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                         newTargets[index] = { ...newTargets[index], column: e.target.value };
                         setFormData({ ...formData, targetColumns: newTargets });
                       }}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
                       <option value="nesting">Nesting</option>
                       <option value="machining">Machining</option>
@@ -438,7 +438,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                           newTargets[index] = { ...newTargets[index], color: e.target.value };
                           setFormData({ ...formData, targetColumns: newTargets });
                         }}
-                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
                         placeholder="#1976d2"
                         pattern="^#[0-9A-Fa-f]{6}$"
                       />
@@ -493,7 +493,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
             <button
               onClick={handleSaveStatus}
               disabled={loading || !formData.displayName.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Saving...' : 'Save'}
             </button>
@@ -560,7 +560,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
               <button
                 onClick={() => handleEditStatus(status)}
                 disabled={loading || isAddMode || !!editingStatus}
-                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 text-gray-600 hover:text-orange-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -580,7 +580,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                 <button
                   onClick={() => moveStatus(index, index - 1)}
                   disabled={loading}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="p-2 text-gray-600 hover:text-orange-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -591,7 +591,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
                 <button
                   onClick={() => moveStatus(index, index + 1)}
                   disabled={loading}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="p-2 text-gray-600 hover:text-orange-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -606,7 +606,7 @@ const JobStatusManagement: React.FC<JobStatusManagementProps> = () => {
       {/* Loading State */}
       {loading && statuses.length === 0 && (
         <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
           <span className="ml-2 text-gray-600">Loading statuses...</span>
         </div>
       )}

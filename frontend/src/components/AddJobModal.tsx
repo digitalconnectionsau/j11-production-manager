@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest, API_ENDPOINTS } from '../utils/api';
 
+interface Project {
+  id: number;
+  name: string;
+  clientId: number;
+}
+
 interface AddJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onJobAdded: () => void;
-  projectId: number;
+  projectId?: number;
+  projects?: Project[];
 }
 
 interface LeadTime {
@@ -31,8 +38,9 @@ interface Holiday {
   name: string;
 }
 
-const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, projectId }) => {
+const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, projectId, projects = [] }) => {
   const [formData, setFormData] = useState({
+    projectId: projectId || '',
     unit: '',
     type: '',
     items: '',
@@ -231,8 +239,14 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
     setLoading(true);
 
     try {
+      const selectedProjectId = formData.projectId || projectId;
+      if (!selectedProjectId) {
+        setError('Please select a project');
+        return;
+      }
+
       const jobData = {
-        projectId,
+        projectId: selectedProjectId,
         unit: formData.unit || null,
         type: formData.type || null,
         items: formData.items,
@@ -244,7 +258,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
         comments: formData.comments || null
       };
 
-      await apiRequest(`/api/projects/${projectId}/jobs`, {
+      await apiRequest(`/api/projects/${selectedProjectId}/jobs`, {
         method: 'POST',
         body: JSON.stringify(jobData)
       });
@@ -253,10 +267,11 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
       onClose();
         // Reset form
         setFormData({
+          projectId: projectId || '',
           unit: '',
           type: '',
           items: '',
-          status: 'not-assigned',
+          status: 'not-started',
           nestingDate: '',
           machiningDate: '',
           assemblyDate: '',
@@ -322,6 +337,30 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Project Selection - only show if projects are provided and no specific projectId */}
+            {projects.length > 0 && !projectId && (
+              <div>
+                <label htmlFor="projectId" className="block text-sm font-medium text-black mb-2">
+                  Project *
+                </label>
+                <select
+                  id="projectId"
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-light-grey rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  required
+                >
+                  <option value="">Select a project...</option>
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Unit */}
               <div>
