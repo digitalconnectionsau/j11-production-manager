@@ -71,18 +71,18 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   });
 
   // Helper functions for styling
-  const getStatusColor = (status: string) => {
+  const getStatusCellStyle = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return { backgroundColor: '#10B981', color: 'white', fontWeight: '600', textAlign: 'center' as const };
       case 'completed':
-        return 'bg-blue-100 text-blue-800';
+        return { backgroundColor: '#3B82F6', color: 'white', fontWeight: '600', textAlign: 'center' as const };
       case 'on-hold':
-        return 'bg-yellow-100 text-yellow-800';
+        return { backgroundColor: '#F59E0B', color: 'white', fontWeight: '600', textAlign: 'center' as const };
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return { backgroundColor: '#EF4444', color: 'white', fontWeight: '600', textAlign: 'center' as const };
       default:
-        return 'bg-light-grey text-charcoal';
+        return { backgroundColor: '#6B7280', color: 'white', fontWeight: '600', textAlign: 'center' as const };
     }
   };
 
@@ -135,10 +135,11 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
       sortable: true,
       width: 120,
       render: (value: string, _row: Project) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(value)}`}>
+        <span style={{ fontWeight: '600' }}>
           {value}
         </span>
-      )
+      ),
+      cellStyle: (row: Project) => getStatusCellStyle(row.status)
     },
     {
       key: 'progress',
