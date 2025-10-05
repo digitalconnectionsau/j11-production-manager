@@ -681,29 +681,29 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         }
       />
 
-
-      {/* Status and Progress */}
-      <div className="mb-6 flex items-center space-x-4">
-        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(project.status)}`}>
-          {project.status}
-        </span>
-        <div className="flex items-center space-x-2">
-          <div className="w-32 bg-gray-200 rounded-full h-3">
-            <div
-              className={`h-3 rounded-full ${getProgressColor(project.progress)}`}
-              style={{ width: `${project.progress}%` }}
-            ></div>
+      <div className="px-6">
+        {/* Status and Progress */}
+        <div className="mb-6 flex items-center space-x-4">
+          <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(project.status)}`}>
+            {project.status}
+          </span>
+          <div className="flex items-center space-x-2">
+            <div className="w-32 bg-gray-200 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full ${getProgressColor(project.progress)}`}
+                style={{ width: `${project.progress}%` }}
+              ></div>
+            </div>
+            <span className="text-sm text-gray-600">{project.progress}% Complete</span>
           </div>
-          <span className="text-sm text-gray-600">{project.progress}% Complete</span>
+          <div className="text-sm text-gray-600">
+            {project.completedJobCount}/{project.jobCount} Jobs Completed
+          </div>
         </div>
-        <div className="text-sm text-gray-600">
-          {project.completedJobCount}/{project.jobCount} Jobs Completed
-        </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-8">
-        <nav className="-mb-px flex space-x-8">
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('jobs')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -846,6 +846,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
           />
         </div>
       )}
+      </div>
 
       {/* Add Job Modal */}
       {project && (
