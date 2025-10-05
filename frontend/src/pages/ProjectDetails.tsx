@@ -101,6 +101,62 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   
   // Column preferences for project jobs table
   const { preferences, updatePreferences } = useColumnPreferences('project-jobs');
+  
+  // Date columns that must stay in fixed order
+  const dateColumns = ['nestingDate', 'machiningDate', 'assemblyDate', 'deliveryDate'];
+  
+  // Wrapper function to enforce column ordering constraints
+  const handleColumnPreferencesChange = async (newPreferences: any[]) => {
+    // Create a copy to work with
+    let constrainedPreferences = [...newPreferences];
+    
+    // Find the date columns and ensure they stay in order
+    const datePrefs = constrainedPreferences.filter(p => dateColumns.includes(p.columnName));
+    const nonDatePrefs = constrainedPreferences.filter(p => !dateColumns.includes(p.columnName));
+    
+    // Sort date columns by their original order
+    datePrefs.sort((a, b) => {
+      const aIndex = dateColumns.indexOf(a.columnName);
+      const bIndex = dateColumns.indexOf(b.columnName);
+      return aIndex - bIndex;
+    });
+    
+    // Find where the date columns should be inserted
+    // We'll insert them as a group, maintaining their relative position
+    const allColumnNames = constrainedPreferences.map(p => p.columnName);
+    const firstDateIndex = Math.min(...dateColumns.map(col => {
+      const index = allColumnNames.indexOf(col);
+      return index === -1 ? Infinity : index;
+    }));
+    
+    // If we found date columns, insert them as a group
+    if (firstDateIndex !== Infinity) {
+      // Remove any scattered date columns from non-date preferences
+      const cleanNonDatePrefs = nonDatePrefs.filter(p => !dateColumns.includes(p.columnName));
+      
+      // Split non-date columns around the insertion point
+      const beforeDate = cleanNonDatePrefs.slice(0, firstDateIndex);
+      const afterDate = cleanNonDatePrefs.slice(firstDateIndex);
+      
+      // Reassemble with date columns as a group
+      constrainedPreferences = [
+        ...beforeDate,
+        ...datePrefs,
+        ...afterDate
+      ];
+    } else {
+      // If no date columns found, just use non-date preferences
+      constrainedPreferences = nonDatePrefs;
+    }
+    
+    // Update order indices
+    constrainedPreferences = constrainedPreferences.map((pref, index) => ({
+      ...pref,
+      orderIndex: index
+    }));
+    
+    await updatePreferences(constrainedPreferences);
+  };
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
   const { token } = useAuth();
 
@@ -465,11 +521,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       key: 'nestingDate',
       label: 'Nesting',
       sortable: true,
-      render: (value: string | null, row: any) => {
+      cellStyle: (row: any) => getColumnStyle(row, 'nesting'),
+      render: (value: string | null) => {
         const formattedDate = formatDate(value);
-        const style = getColumnStyle(row, 'nesting');
         return (
-          <div style={style} className="text-sm">
+          <div className="text-sm px-2 py-1">
             {formattedDate}
           </div>
         );
@@ -479,11 +535,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       key: 'machiningDate', 
       label: 'Machining',
       sortable: true,
-      render: (value: string | null, row: any) => {
+      cellStyle: (row: any) => getColumnStyle(row, 'machining'),
+      render: (value: string | null) => {
         const formattedDate = formatDate(value);
-        const style = getColumnStyle(row, 'machining');
         return (
-          <div style={style} className="text-sm">
+          <div className="text-sm px-2 py-1">
             {formattedDate}
           </div>
         );
@@ -493,11 +549,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       key: 'assemblyDate',
       label: 'Assembly', 
       sortable: true,
-      render: (value: string | null, row: any) => {
+      cellStyle: (row: any) => getColumnStyle(row, 'assembly'),
+      render: (value: string | null) => {
         const formattedDate = formatDate(value);
-        const style = getColumnStyle(row, 'assembly');
         return (
-          <div style={style} className="text-sm">
+          <div className="text-sm px-2 py-1">
             {formattedDate}
           </div>
         );
@@ -506,12 +562,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     {
       key: 'deliveryDate',
       label: 'Delivery',
-      sortable: true, 
-      render: (value: string | null, row: any) => {
+      sortable: true,
+      cellStyle: (row: any) => getColumnStyle(row, 'delivery'),
+      render: (value: string | null) => {
         const formattedDate = formatDate(value);
-        const style = getColumnStyle(row, 'delivery');
         return (
-          <div style={style} className="text-sm">
+          <div className="text-sm px-2 py-1">
             {formattedDate}
           </div>
         );
@@ -521,14 +577,20 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
       key: 'status',
       label: 'Status',
       sortable: true,
+      cellStyle: (row: any) => {
+        const statusStyle = getJobStatusStyle(row);
+        return {
+          backgroundColor: statusStyle.backgroundColor,
+          color: statusStyle.color,
+        };
+      },
       render: (_value: any, row: any) => (
         <button
           onClick={(e) => {
             e.stopPropagation();
             cycleJobStatus(row.id, row.status);
           }}
-          className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-          style={getJobStatusStyle(row)}
+          className="w-full text-left px-2 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
         >
           {row.statusInfo?.displayName || row.status.replace('-', ' ')}
         </button>
@@ -771,7 +833,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
       {/* Jobs Tab */}
       {activeTab === 'jobs' && (
-        <div className="space-y-6">
+        <div className="p-6 space-y-6">
           <DataTable
             data={project.jobs || []}
             columns={columns}
@@ -779,7 +841,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             loading={false}
             emptyMessage="No jobs assigned to this project"
             columnPreferences={preferences}
-            onColumnPreferencesChange={updatePreferences}
+            onColumnPreferencesChange={handleColumnPreferencesChange}
             resizableColumns={true}
           />
         </div>
