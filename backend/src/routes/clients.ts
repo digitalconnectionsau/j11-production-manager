@@ -3,6 +3,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { clients, projects, jobs, contacts } from '../db/schema.js';
 import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
+import { logRecordCreation, logAuditChanges, logRecordDeletion } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -120,6 +121,16 @@ router.post('/', verifyTokenAndPermission('add_clients'), async (req: Authentica
       })
       .returning();
 
+    // Log the creation
+    await logRecordCreation(
+      'clients', 
+      newClient[0].id, 
+      newClient[0], 
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.status(201).json(newClient[0]);
   } catch (error) {
     console.error('Error creating client:', error);
@@ -132,6 +143,17 @@ router.put('/:id', verifyTokenAndPermission('edit_clients'), async (req: Authent
   try {
     const clientId = parseInt(req.params.id);
     const { name, company, email, phone, address, abn, contactPerson, notes, isActive } = req.body;
+
+    // Get the old record before updating
+    const [oldClient] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
+
+    if (!oldClient) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     const updatedClient = await db
       .update(clients)
@@ -154,6 +176,17 @@ router.put('/:id', verifyTokenAndPermission('edit_clients'), async (req: Authent
       return res.status(404).json({ error: 'Client not found' });
     }
 
+    // Log the changes
+    await logAuditChanges(
+      'clients',
+      clientId,
+      oldClient,
+      updatedClient[0],
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.json(updatedClient[0]);
   } catch (error) {
     console.error('Error updating client:', error);
@@ -171,6 +204,17 @@ router.patch('/:id/archive', verifyTokenAndPermission('edit_clients'), async (re
       return res.status(400).json({ error: 'archived field must be a boolean' });
     }
 
+    // Get the old record before updating
+    const [oldClient] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
+
+    if (!oldClient) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
     const updatedClient = await db
       .update(clients)
       .set({ 
@@ -183,6 +227,17 @@ router.patch('/:id/archive', verifyTokenAndPermission('edit_clients'), async (re
     if (updatedClient.length === 0) {
       return res.status(404).json({ error: 'Client not found' });
     }
+
+    // Log the archive change
+    await logAuditChanges(
+      'clients',
+      clientId,
+      oldClient,
+      updatedClient[0],
+      req.user?.id,
+      req.user?.email,
+      req
+    );
 
     res.json({ 
       message: `Client ${archived ? 'archived' : 'unarchived'} successfully`,
@@ -198,6 +253,17 @@ router.patch('/:id/archive', verifyTokenAndPermission('edit_clients'), async (re
 router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: AuthenticatedRequest, res) => {
   try {
     const clientId = parseInt(req.params.id);
+
+    // Get the client record before deleting for audit logging
+    const [clientToDelete] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, clientId))
+      .limit(1);
+
+    if (!clientToDelete) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     // Start a transaction for cascading delete
     const result = await db.transaction(async (tx) => {
@@ -255,6 +321,16 @@ router.delete('/:id', verifyTokenAndPermission('delete_clients'), async (req: Au
         deletedContacts: deletedContacts.length
       };
     });
+
+    // Log the deletion
+    await logRecordDeletion(
+      'clients',
+      clientId,
+      clientToDelete,
+      req.user?.id,
+      req.user?.email,
+      req
+    );
 
     res.json({ 
       message: 'Client and all associated data deleted successfully',

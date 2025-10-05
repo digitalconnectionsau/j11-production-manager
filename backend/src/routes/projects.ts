@@ -3,6 +3,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { projects, clients, jobs, jobStatuses } from '../db/schema.js';
 import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
+import { logRecordCreation, logAuditChanges, logRecordDeletion } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -170,6 +171,16 @@ router.post('/', verifyTokenAndPermission('add_projects'), async (req: Authentic
       })
       .returning();
 
+    // Log the creation
+    await logRecordCreation(
+      'projects', 
+      newProject[0].id, 
+      newProject[0], 
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.status(201).json(newProject[0]);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -182,6 +193,17 @@ router.put('/:id', verifyTokenAndPermission('edit_projects'), async (req: Authen
   try {
     const projectId = parseInt(req.params.id);
     const { name, description, status, clientId } = req.body;
+
+    // Get the old record before updating
+    const [oldProject] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    if (!oldProject) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
 
     const updatedProject = await db
       .update(projects)
@@ -199,6 +221,17 @@ router.put('/:id', verifyTokenAndPermission('edit_projects'), async (req: Authen
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    // Log the changes
+    await logAuditChanges(
+      'projects',
+      projectId,
+      oldProject,
+      updatedProject[0],
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.json(updatedProject[0]);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -211,6 +244,17 @@ router.delete('/:id', verifyTokenAndPermission('delete_projects'), async (req: A
   try {
     const projectId = parseInt(req.params.id);
 
+    // Get the record before deleting for audit logging
+    const [projectToDelete] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    if (!projectToDelete) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     const deletedProject = await db
       .delete(projects)
       .where(eq(projects.id, projectId))
@@ -219,6 +263,16 @@ router.delete('/:id', verifyTokenAndPermission('delete_projects'), async (req: A
     if (deletedProject.length === 0) {
       return res.status(404).json({ error: 'Project not found' });
     }
+
+    // Log the deletion
+    await logRecordDeletion(
+      'projects',
+      projectId,
+      projectToDelete,
+      req.user?.id,
+      req.user?.email,
+      req
+    );
 
     res.status(204).send();
   } catch (error) {
