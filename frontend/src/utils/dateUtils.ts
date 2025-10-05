@@ -33,6 +33,38 @@ export const DATE_FORMAT_OPTIONS = {
 };
 
 /**
+ * Parse Australian DD/MM/YYYY format date string to Date object
+ */
+export const parseAustralianDate = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) return null;
+  
+  // Check if it's already in DD/MM/YYYY format
+  const ddmmyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  const match = String(dateString).match(ddmmyyyyPattern);
+  
+  if (match) {
+    const [, day, month, year] = match;
+    // Create date with DD/MM/YYYY format (month is 0-indexed in JS)
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Verify the date is valid and matches the input
+    if (date.getDate() === parseInt(day) && 
+        date.getMonth() === parseInt(month) - 1 && 
+        date.getFullYear() === parseInt(year)) {
+      return date;
+    }
+  }
+  
+  // Fallback to standard date parsing
+  try {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Format a date string or Date object to a localized date string
  */
 export const formatDate = (
@@ -43,7 +75,19 @@ export const formatDate = (
   if (!date) return '-';
   
   try {
-    const d = new Date(date);
+    // First try to parse as Australian date format if it's a string
+    let d: Date;
+    if (typeof date === 'string') {
+      const parsedDate = parseAustralianDate(date);
+      if (parsedDate) {
+        d = parsedDate;
+      } else {
+        return '-';
+      }
+    } else {
+      d = new Date(date);
+    }
+    
     if (isNaN(d.getTime())) return '-';
     
     return d.toLocaleDateString(locale, options);
@@ -79,6 +123,10 @@ export const isValidDate = (date: string | Date | null | undefined): boolean => 
   if (!date) return false;
   
   try {
+    if (typeof date === 'string') {
+      const parsedDate = parseAustralianDate(date);
+      return parsedDate !== null;
+    }
     const d = new Date(date);
     return !isNaN(d.getTime());
   } catch {
@@ -92,7 +140,15 @@ export const isValidDate = (date: string | Date | null | undefined): boolean => 
 export const isOverdue = (date: string | Date | null | undefined): boolean => {
   if (!isValidDate(date)) return false;
   
-  const d = new Date(date!);
+  let d: Date;
+  if (typeof date === 'string') {
+    const parsedDate = parseAustralianDate(date);
+    if (!parsedDate) return false;
+    d = parsedDate;
+  } else {
+    d = new Date(date!);
+  }
+  
   const now = new Date();
   
   // Reset time to compare only dates
@@ -112,7 +168,15 @@ export const getRelativeTime = (
   if (!isValidDate(date)) return '-';
   
   try {
-    const d = new Date(date!);
+    let d: Date;
+    if (typeof date === 'string') {
+      const parsedDate = parseAustralianDate(date);
+      if (!parsedDate) return '-';
+      d = parsedDate;
+    } else {
+      d = new Date(date!);
+    }
+    
     const now = new Date();
     const diffMs = d.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -137,7 +201,15 @@ export const formatDateForInput = (date: string | Date | null | undefined): stri
   if (!isValidDate(date)) return '';
   
   try {
-    const d = new Date(date!);
+    let d: Date;
+    if (typeof date === 'string') {
+      const parsedDate = parseAustralianDate(date);
+      if (!parsedDate) return '';
+      d = parsedDate;
+    } else {
+      d = new Date(date!);
+    }
+    
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

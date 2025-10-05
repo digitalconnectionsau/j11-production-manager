@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { formatDate as formatDateUtil } from '../utils/dateUtils';
 import { apiRequest } from '../utils/api';
 import AddJobModal from '../components/AddJobModal';
 import BulkUploadModal from '../components/BulkUploadModal';
+import PageHeader from '../components/PageHeader';
+import { DataTable } from '../components/DataTable';
+import type { TableColumn } from '../components/DataTable';
+import Button from '../components/ui/Button';
 
 interface ColumnTarget {
   column: string;
@@ -16,10 +21,10 @@ interface Job {
   unit?: string;
   type?: string;
   items: string;
-  nestingDate?: string;
-  machiningDate?: string;
-  assemblyDate?: string;
-  deliveryDate?: string;
+  nestingDate?: string | null;
+  machiningDate?: string | null;
+  assemblyDate?: string | null;
+  deliveryDate?: string | null;
   status: 'not-assigned' | 'nesting-complete' | 'machining-complete' | 'assembly-complete' | 'delivered';
   statusId?: number;
   comments?: string;
@@ -93,21 +98,26 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   const [showAddJobModal, setShowAddJobModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'jobs' | 'info'>(initialTab);
+  
+  // Column preferences for project jobs table
+  const { preferences, updatePreferences } = useColumnPreferences('project-jobs');
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([]);
   const { token } = useAuth();
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Helper function to format date for display
-  const formatDate = (dateString: string): string => {
-    console.log('formatDate called with:', dateString, 'type:', typeof dateString);
-    if (!dateString) {
-      console.log('formatDate: no dateString, returning -');
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString || dateString === 'null' || dateString === 'undefined') {
       return '-';
     }
-    const result = formatDateUtil(dateString) || '-';
-    console.log('formatDate result:', result);
-    return result;
+    try {
+      const result = formatDateUtil(dateString);
+      return result || '-';
+    } catch (error) {
+      console.warn('Date formatting error:', error, 'for date:', dateString);
+      return '-';
+    }
   };
 
   // Fetch project details
@@ -144,19 +154,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
         isPinned = pinnedData.some((p: any) => p.projectId === projectId);
       }
 
-      // Debug specific job date fields
-      if (projectData.jobs && projectData.jobs.length > 0) {
-        const firstJob = projectData.jobs[0];
-        console.log('ProjectDetails - First job date fields:', {
-          nestingDate: firstJob.nestingDate,
-          machiningDate: firstJob.machiningDate,
-          assemblyDate: firstJob.assemblyDate,
-          deliveryDate: firstJob.deliveryDate,
-          nestingDateType: typeof firstJob.nestingDate,
-          machiningDateType: typeof firstJob.machiningDate
-        });
-      }
-      
       setProject({ ...projectData, isPinned });
       setEditForm({ ...projectData, isPinned });
     } catch (err) {
@@ -438,27 +435,127 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     );
   }
 
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={onBack}
-          className="mb-4 text-primary hover:opacity-80 flex items-center"
-        >
-          ← Back to Projects
-        </button>
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-black">{project.name}</h1>
-            {project.client && (
-              <p className="text-lg text-charcoal mt-1">
-                {project.client.name}
-                {project.client.company && ` - ${project.client.company}`}
-              </p>
-            )}
+  // DataTable column configuration for jobs
+  const columns: TableColumn[] = [
+    {
+      key: 'id',
+      label: 'Job #',
+      sortable: true,
+      render: (value: any) => `#${value}`
+    },
+    {
+      key: 'unit',
+      label: 'Unit',
+      sortable: true,
+      render: (value: any) => value || '-'
+    },
+    {
+      key: 'type', 
+      label: 'Type',
+      sortable: true,
+      render: (value: any) => value || '-'
+    },
+    {
+      key: 'items',
+      label: 'Items', 
+      sortable: true,
+      render: (value: any) => value || '-'
+    },
+    {
+      key: 'nestingDate',
+      label: 'Nesting',
+      sortable: true,
+      render: (value: string | null, row: any) => {
+        const formattedDate = formatDate(value);
+        const style = getColumnStyle(row, 'nesting');
+        return (
+          <div style={style} className="text-sm">
+            {formattedDate}
           </div>
-          <div className="flex space-x-3">
+        );
+      }
+    },
+    {
+      key: 'machiningDate', 
+      label: 'Machining',
+      sortable: true,
+      render: (value: string | null, row: any) => {
+        const formattedDate = formatDate(value);
+        const style = getColumnStyle(row, 'machining');
+        return (
+          <div style={style} className="text-sm">
+            {formattedDate}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'assemblyDate',
+      label: 'Assembly', 
+      sortable: true,
+      render: (value: string | null, row: any) => {
+        const formattedDate = formatDate(value);
+        const style = getColumnStyle(row, 'assembly');
+        return (
+          <div style={style} className="text-sm">
+            {formattedDate}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'deliveryDate',
+      label: 'Delivery',
+      sortable: true, 
+      render: (value: string | null, row: any) => {
+        const formattedDate = formatDate(value);
+        const style = getColumnStyle(row, 'delivery');
+        return (
+          <div style={style} className="text-sm">
+            {formattedDate}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_value: any, row: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            cycleJobStatus(row.id, row.status);
+          }}
+          className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+          style={getJobStatusStyle(row)}
+        >
+          {row.statusInfo?.displayName || row.status.replace('-', ' ')}
+        </button>
+      )
+    },
+    {
+      key: 'comments',
+      label: 'Comments',
+      sortable: false,
+      render: (value: any) => (
+        <div className="text-sm text-gray-500 max-w-xs truncate">
+          {value || '-'}
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div>
+      <PageHeader
+        title={project.name}
+        description={project.description || `Manage jobs and details for ${project.name}${project.client ? ` (${project.client.name})` : ''}`}
+        breadcrumbs={[
+          { label: "Projects", href: "#", onClick: onBack }
+        ]}
+        actions={
+          <div className="flex items-center space-x-3">
             <button
               onClick={togglePinProject}
               disabled={isPinning}
@@ -506,9 +603,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                 </button>
               </div>
             )}
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowBulkUploadModal(true)}
+            >
+              📁 Bulk Upload
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => setShowAddJobModal(true)}
+            >
+              + Add Job
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
+
 
       {/* Status and Progress */}
       <div className="mb-6 flex items-center space-x-4">
@@ -661,149 +771,18 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
       {/* Jobs Tab */}
       {activeTab === 'jobs' && (
-        <>
-          {/* Jobs/Tasks List */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Jobs ({project.jobCount})</h3>
-            <div className="flex space-x-3">
-              <button
-                className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                onClick={() => setShowAddJobModal(true)}
-              >
-                <span>➕</span>
-                <span>Add Job</span>
-              </button>
-              <button
-                className="bg-secondary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
-                onClick={() => setShowBulkUploadModal(true)}
-              >
-                <span>📁</span>
-                <span>Bulk Upload</span>
-              </button>
-            </div>
-          </div>
+        <div className="space-y-6">
+          <DataTable
+            data={project.jobs || []}
+            columns={columns}
+            onRowClick={(job) => onJobSelect?.(job.id)}
+            loading={false}
+            emptyMessage="No jobs assigned to this project"
+            columnPreferences={preferences}
+            onColumnPreferencesChange={updatePreferences}
+            resizableColumns={true}
+          />
         </div>
-        {project.jobs && project.jobs.length > 0 ? (
-          <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Unit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Items
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nesting
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Machining
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Assembly
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Delivery
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Comments
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {(project.jobs || []).map((job) => (
-                  <tr 
-                    key={job.id} 
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onJobSelect?.(job.id)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {job.unit || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {job.type || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{job.items}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="text-sm text-gray-900"
-                        style={getColumnStyle(job, 'nesting')}
-                      >
-                        {job.nestingDate ? formatDate(job.nestingDate) : 'NO DATE'}
-                        {/* Debug: {JSON.stringify(job.nestingDate)} */}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="text-sm text-gray-900"
-                        style={getColumnStyle(job, 'machining')}
-                      >
-                        {job.machiningDate ? formatDate(job.machiningDate) : 'NO DATE'}
-                        {/* Debug: {JSON.stringify(job.machiningDate)} */}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="text-sm text-gray-900"
-                        style={getColumnStyle(job, 'assembly')}
-                      >
-                        {job.assemblyDate ? formatDate(job.assemblyDate) : 'NO DATE'}
-                        {/* Debug: {JSON.stringify(job.assemblyDate)} */}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="text-sm text-gray-900"
-                        style={getColumnStyle(job, 'delivery')}
-                      >
-                        {job.deliveryDate ? formatDate(job.deliveryDate) : 'NO DATE'}
-                        {/* Debug: {JSON.stringify(job.deliveryDate)} */}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          cycleJobStatus(job.id, job.status);
-                        }}
-                        className="inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 transition-opacity"
-                        style={getJobStatusStyle(job)}
-                      >
-                        {job.statusInfo?.displayName || job.status.replace('-', ' ')}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 max-w-xs truncate">
-                        {job.comments || '-'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="px-6 py-12 text-center">
-            <div className="text-gray-500">No jobs assigned to this project</div>
-          </div>
-        )}
-      </div>
-        </>
       )}
 
       {/* Add Job Modal */}
