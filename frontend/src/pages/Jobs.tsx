@@ -857,10 +857,7 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
       <PageHeader
         title="Jobs"
         description="Manage and track all production jobs across different projects. Monitor progress, update statuses, and coordinate delivery schedules."
-        breadcrumbs={[
-          { label: 'Dashboard', onClick: () => {} },
-          { label: 'Jobs' }
-        ]}
+        breadcrumbs={[]}
         actions={
           <div className="flex items-center space-x-3 print:hidden">
             <Button 

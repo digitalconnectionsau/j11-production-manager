@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ProtectedRoute from '../components/ProtectedRoute';
 import AddClientModal from '../components/AddClientModal';
+import PageHeader from '../components/PageHeader';
 
 interface Client {
   id: number;
@@ -267,14 +268,11 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
 
   return (
     <ProtectedRoute>
-      <div className="p-6 print:p-0">
-        <div className="flex justify-between items-center mb-6 print:mb-2">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 print:text-xl print:mb-1">Clients</h1>
-            <div className="hidden print:block text-sm text-gray-600 mt-1">
-              {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
-            </div>
-          </div>
+      <PageHeader
+        title="Clients"
+        description="Manage client relationships and contact information. Track client projects and maintain detailed records for all business relationships."
+        breadcrumbs={[]}
+        actions={
           <div className="flex items-center space-x-3 print:hidden">
             <Button 
               variant="secondary" 
@@ -301,6 +299,12 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
               Add Client
             </Button>
           </div>
+        }
+      />
+      
+      <div className="px-6 print:p-0">
+        <div className="hidden print:block text-sm text-gray-600 mb-4">
+          {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
         </div>
 
         {error && (

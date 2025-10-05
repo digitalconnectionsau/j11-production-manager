@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AddProjectModal from '../components/AddProjectModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import PageHeader from '../components/PageHeader';
 
 interface Project {
   id: number;
@@ -210,16 +211,22 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
-        >
-          Add Project
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        title="Projects"
+        description="Organize and manage client projects. Track progress, assign jobs, and monitor deliverables across all active projects."
+        breadcrumbs={[]}
+        actions={
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 transition-colors"
+          >
+            Add Project
+          </button>
+        }
+      />
+      
+      <div className="px-6">
 
       {/* Search and Filter Controls */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -371,6 +378,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
             )}
           </div>
         )}
+      </div>
       </div>
 
       {/* Add Project Modal */}
