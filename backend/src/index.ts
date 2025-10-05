@@ -18,6 +18,7 @@ import analyticsRoutes from './routes/analytics.js';
 import contactsRoutes from './routes/contacts.js';
 import userColumnPreferencesRoutes from './routes/userColumnPreferences.js';
 import importRoutes from './routes/import.js';
+import auditRoutes from './routes/audit.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +68,7 @@ app.use('/api/lead-times', leadTimesRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/user-column-preferences', userColumnPreferencesRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/audit', auditRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

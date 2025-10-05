@@ -3,6 +3,7 @@ import { db } from '../db/index.js';
 import { eq, desc } from 'drizzle-orm';
 import { jobs, projects, clients, jobStatuses } from '../db/schema.js';
 import { verifyTokenAndPermission, type AuthenticatedRequest } from '../middleware/permissions.js';
+import { logRecordCreation, logAuditChanges, logRecordDeletion } from '../services/auditService.js';
 
 const router = Router();
 
@@ -141,6 +142,16 @@ router.post('/', verifyTokenAndPermission('add_jobs'), async (req: Authenticated
       })
       .returning();
 
+    // Log the creation
+    await logRecordCreation(
+      'jobs', 
+      newJob.id, 
+      newJob, 
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.status(201).json(newJob);
   } catch (error) {
     console.error('Error creating job:', error);
@@ -165,6 +176,17 @@ router.put('/:id', verifyTokenAndPermission('edit_jobs'), async (req: Authentica
       comments 
     } = req.body;
 
+    // Get the old record before updating
+    const [oldJob] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .limit(1);
+
+    if (!oldJob) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
     const [updatedJob] = await db
       .update(jobs)
       .set({
@@ -187,6 +209,17 @@ router.put('/:id', verifyTokenAndPermission('edit_jobs'), async (req: Authentica
       return res.status(404).json({ error: 'Job not found' });
     }
 
+    // Log the changes
+    await logAuditChanges(
+      'jobs',
+      jobId,
+      oldJob,
+      updatedJob,
+      req.user?.id,
+      req.user?.email,
+      req
+    );
+
     res.json(updatedJob);
   } catch (error) {
     console.error('Error updating job:', error);
@@ -199,6 +232,17 @@ router.delete('/:id', verifyTokenAndPermission('delete_jobs'), async (req: Authe
   try {
     const jobId = parseInt(req.params.id);
 
+    // Get the record before deleting for audit logging
+    const [jobToDelete] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, jobId))
+      .limit(1);
+
+    if (!jobToDelete) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
     const [deletedJob] = await db
       .delete(jobs)
       .where(eq(jobs.id, jobId))
@@ -207,6 +251,16 @@ router.delete('/:id', verifyTokenAndPermission('delete_jobs'), async (req: Authe
     if (!deletedJob) {
       return res.status(404).json({ error: 'Job not found' });
     }
+
+    // Log the deletion
+    await logRecordDeletion(
+      'jobs',
+      jobId,
+      jobToDelete,
+      req.user?.id,
+      req.user?.email,
+      req
+    );
 
     res.json({ message: 'Job deleted successfully' });
   } catch (error) {

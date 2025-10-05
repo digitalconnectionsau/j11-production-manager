@@ -199,6 +199,23 @@ export const userColumnPreferences = pgTable('user_column_preferences', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// Audit logs table for tracking all data changes
+export const auditLogs = pgTable('audit_logs', {
+  id: serial('id').primaryKey(),
+  tableName: varchar('table_name', { length: 100 }).notNull(),
+  recordId: integer('record_id').notNull(),
+  action: varchar('action', { length: 50 }).notNull(), // INSERT, UPDATE, DELETE
+  fieldName: varchar('field_name', { length: 100 }), // NULL for INSERT/DELETE, specific field for UPDATE
+  oldValue: text('old_value'), // JSON string of old value
+  newValue: text('new_value'), // JSON string of new value
+  userId: integer('user_id').references(() => users.id),
+  userEmail: varchar('user_email', { length: 255 }),
+  ipAddress: varchar('ip_address', { length: 45 }), // Supports both IPv4 and IPv6
+  userAgent: text('user_agent'),
+  timestamp: timestamp('timestamp').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -230,3 +247,5 @@ export type LeadTime = typeof leadTimes.$inferSelect;
 export type NewLeadTime = typeof leadTimes.$inferInsert;
 export type UserColumnPreference = typeof userColumnPreferences.$inferSelect;
 export type NewUserColumnPreference = typeof userColumnPreferences.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
