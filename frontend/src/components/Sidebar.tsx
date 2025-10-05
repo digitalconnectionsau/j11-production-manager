@@ -189,8 +189,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
                   collapsed ? 'justify-center px-3 py-3 mx-2' : 'space-x-3 py-3'
                 } ${
                   currentPage === item.id
-                    ? `text-gray-300 ${collapsed ? '' : 'border-l-4 border-orange-500 pl-5'}`
-                    : `text-gray-300 ${collapsed ? '' : 'hover:border-l-4 hover:border-orange-500 hover:pl-5'} ${collapsed ? '' : 'pl-6'}`
+                    ? `text-gray-300 border-l-4 border-orange-500 ${collapsed ? 'pl-0' : 'pl-5'}`
+                    : `text-gray-300 hover:border-l-4 hover:border-orange-500 ${collapsed ? 'hover:pl-0' : 'hover:pl-5'} ${collapsed ? 'pl-0' : 'pl-6'}`
                 }`}
                 style={{
                   backgroundColor: currentPage === item.id ? '#212222' : 'transparent'
