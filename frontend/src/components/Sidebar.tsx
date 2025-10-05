@@ -186,7 +186,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, onProjectS
               <button
                 onClick={() => onPageChange(item.id)}
                 className={`w-full flex items-center transition-all duration-200 relative ${
-                  collapsed ? 'justify-center px-3 py-3 mx-2' : 'space-x-3 py-3'
+                  collapsed ? 'justify-center px-3 py-3' : 'space-x-3 py-3'
                 } ${
                   currentPage === item.id
                     ? `text-gray-300 border-l-4 border-orange-500 ${collapsed ? 'pl-0' : 'pl-5'}`
