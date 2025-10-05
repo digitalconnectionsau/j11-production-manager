@@ -282,28 +282,12 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
       width: 100,
       render: (value: string, row: Job) => {
         if (row.statusInfo) {
-          // Ensure colors have # prefix
-          const backgroundColor = row.statusInfo.backgroundColor?.startsWith('#') 
-            ? row.statusInfo.backgroundColor 
-            : `#${row.statusInfo.backgroundColor}`;
-          const textColor = row.statusInfo.color?.startsWith('#') 
-            ? row.statusInfo.color 
-            : `#${row.statusInfo.color}`;
-            
           return (
             <span
               onClick={(e) => handleStatusClick(e, row)}
               style={{
-                backgroundColor: backgroundColor,
-                color: textColor,
-                padding: '4px 8px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: '500',
-                textAlign: 'center',
-                display: 'inline-block',
-                minWidth: '80px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontWeight: '600'
               }}
               title="Click to change status"
             >
@@ -312,7 +296,8 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
           );
         }
         return createStatusRenderer()(value);
-      }
+      },
+      cellStyle: (row: Job) => getStatusCellStyle(row)
     },
     {
       key: 'nestingDate',
@@ -549,6 +534,28 @@ function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
         backgroundColor: color,
         fontWeight: '600',
         color: '#ffffff' // Use white text for better contrast
+      };
+    }
+    
+    return {};
+  };
+
+  // Get cell styling for status column
+  const getStatusCellStyle = (row: Job) => {
+    if (row.statusInfo && row.statusInfo.backgroundColor) {
+      // Ensure color has # prefix
+      const backgroundColor = row.statusInfo.backgroundColor.startsWith('#') 
+        ? row.statusInfo.backgroundColor 
+        : `#${row.statusInfo.backgroundColor}`;
+      const textColor = row.statusInfo.color?.startsWith('#') 
+        ? row.statusInfo.color 
+        : `#${row.statusInfo.color}`;
+      
+      return {
+        backgroundColor: backgroundColor,
+        color: textColor || '#ffffff',
+        fontWeight: '600',
+        textAlign: 'center' as const
       };
     }
     
