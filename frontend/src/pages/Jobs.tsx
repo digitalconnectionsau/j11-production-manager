@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import { useTableShare } from '../hooks/useTableShare';
 import { DataTable } from '../components/DataTable';
 import type { TableColumn, FilterConfig, SortConfig, MultiSortConfig } from '../components/DataTable';
 import { createStatusRenderer, createDateRenderer } from '../components/DataTable/utils';
@@ -43,7 +44,7 @@ interface WeekSeparator {
   weekInfo: string;
 }
 
-type JobOrSeparator = Job | WeekSeparator;
+
 
 interface ColumnTarget {
   column: string;
@@ -75,9 +76,10 @@ interface JobStatus {
 interface JobsProps {
   onProjectSelect: (projectId: number, tab?: "jobs" | "info") => void;
   onJobSelect: (jobId: number) => void;
+  onClientSelect?: (clientId: number) => void;
 }
 
-function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
+function Jobs({ onProjectSelect, onJobSelect, onClientSelect }: JobsProps) {
   const { token } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -102,8 +104,8 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
   const [sort, setSort] = useState<SortConfig>({ field: 'id', direction: 'desc' });
   const [multiSort, setMultiSort] = useState<MultiSortConfig[]>([]);
   
-  // Display settings from localStorage
-  const [displaySettings] = useState(() => {
+  // Display settings from localStorage (reactive)
+  const [displaySettings, setDisplaySettings] = useState(() => {
     const saved = localStorage.getItem('displaySettings');
     return saved ? JSON.parse(saved) : {
       weekType: 'calendar',
@@ -111,9 +113,88 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       weekCalculationBase: 'delivery'
     };
   });
+
+  // Listen for changes to localStorage displaySettings
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('displaySettings');
+      if (saved) {
+        setDisplaySettings(JSON.parse(saved));
+      }
+    };
+
+    // Listen for storage events (changes from other tabs)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes made in the same tab
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
   
   // Column preferences
   const { preferences, updatePreferences } = useColumnPreferences('jobs');
+
+  // Helper function to describe active filters
+  const getActiveFiltersDescription = () => {
+    const activeFilters = [];
+    if (filters.search) activeFilters.push(`Search: "${filters.search}"`);
+    if (filters.status) {
+      const status = jobStatuses.find(s => s.id.toString() === filters.status);
+      if (status) activeFilters.push(`Status: ${status.displayName}`);
+    }
+    if (filters.client) {
+      const client = clients.find(c => c.id.toString() === filters.client);
+      if (client) activeFilters.push(`Client: ${client.name}`);
+    }
+    if (filters.project) {
+      const project = projects.find(p => p.id.toString() === filters.project);
+      if (project) activeFilters.push(`Project: ${project.name}`);
+    }
+    if (filters.dateFrom || filters.dateTo) {
+      let dateRange = 'Date: ';
+      if (filters.dateFrom && filters.dateTo) {
+        dateRange += `${filters.dateFrom} to ${filters.dateTo}`;
+      } else if (filters.dateFrom) {
+        dateRange += `from ${filters.dateFrom}`;
+      } else {
+        dateRange += `until ${filters.dateTo}`;
+      }
+      activeFilters.push(dateRange);
+    }
+    if (filters.hideCompleted) activeFilters.push('Hiding completed jobs');
+    if (filters.showWeekSeparators) activeFilters.push('Showing week separators');
+    
+    return activeFilters.length > 0 ? activeFilters.join(' • ') : 'All jobs';
+  };
+  
+  // Print and share functionality
+  const { handlePrint, openShareView } = useTableShare({
+    title: 'J11 Production Manager - Jobs Report',
+    subtitle: getActiveFiltersDescription()
+  });
+
+  // Helper function to create clickable cell for job navigation
+  const createJobClickableCell = (value: any, row: Job, className?: string) => {
+    const handleJobClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Set both job ID and project ID for navigation
+      onJobSelect(row.id);
+      onProjectSelect(row.projectId);
+    };
+
+    return (
+      <button
+        onClick={handleJobClick}
+        className={`text-gray-900 hover:text-gray-700 hover:underline text-left w-full ${className || ''}`}
+      >
+        {value || '-'}
+      </button>
+    );
+  };
 
   // Define table columns
   const columns: TableColumn<Job>[] = [
@@ -122,31 +203,58 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'ID',
       sortable: true,
       width: 80,
-      className: 'font-mono text-sm'
+      className: 'font-mono text-sm',
+      render: (value: number, row: Job) => createJobClickableCell(value, row, 'font-mono text-sm')
     },
     {
       key: 'unit',
       label: 'Unit',
       sortable: true,
-      width: 80
+      width: 80,
+      render: (value: string, row: Job) => createJobClickableCell(value, row)
     },
     {
       key: 'type',
       label: 'Type',
       sortable: true,
-      width: 80
+      width: 80,
+      render: (value: string, row: Job) => createJobClickableCell(value, row)
     },
     {
       key: 'items',
       label: 'Items',
       sortable: true,
-      width: 120
+      width: 120,
+      render: (value: string, row: Job) => createJobClickableCell(value, row)
     },
     {
       key: 'clientName',
       label: 'Client',
       sortable: true,
-      width: 100
+      width: 100,
+      render: (value: string) => {
+        if (!onClientSelect) {
+          return value;
+        }
+        
+        // Find the client ID from the client name
+        const client = clients.find(c => c.name === value);
+        if (!client) {
+          return value;
+        }
+        
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClientSelect(client.id);
+            }}
+            className="text-gray-900 hover:text-gray-700 hover:underline text-left"
+          >
+            {value}
+          </button>
+        );
+      }
     },
     {
       key: 'projectName',
@@ -159,7 +267,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
             e.stopPropagation();
             onProjectSelect(row.projectId);
           }}
-          className="text-blue-600 hover:text-blue-800 hover:underline text-left"
+          className="text-gray-900 hover:text-gray-700 hover:underline text-left"
         >
           {value}
         </button>
@@ -209,7 +317,31 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'Nesting',
       sortable: true,
       width: 100,
-      render: createDateRenderer(),
+      render: (value: string, row: Job) => {
+        // Use the original createDateRenderer logic but make it clickable
+        const originalDate = createDateRenderer()(value);
+        
+        const dateStyle = getDateCellStyle('nestingDate', row);
+        const isHighlighted = Object.keys(dateStyle).length > 0;
+        
+        const handleJobClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onJobSelect(row.id);
+          onProjectSelect(row.projectId);
+        };
+
+        return (
+          <button
+            onClick={handleJobClick}
+            className={`hover:underline text-left w-full ${
+              isHighlighted ? '' : 'text-gray-900 hover:text-gray-700'
+            }`}
+            style={isHighlighted ? { ...dateStyle, color: dateStyle.color || '#ffffff' } : {}}
+          >
+            {originalDate}
+          </button>
+        );
+      },
       cellStyle: (row: Job) => getDateCellStyle('nestingDate', row)
     },
     {
@@ -217,7 +349,31 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'Machining',
       sortable: true,
       width: 100,
-      render: createDateRenderer(),
+      render: (value: string, row: Job) => {
+        // Use the original createDateRenderer logic but make it clickable
+        const originalDate = createDateRenderer()(value);
+        
+        const dateStyle = getDateCellStyle('machiningDate', row);
+        const isHighlighted = Object.keys(dateStyle).length > 0;
+        
+        const handleJobClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onJobSelect(row.id);
+          onProjectSelect(row.projectId);
+        };
+
+        return (
+          <button
+            onClick={handleJobClick}
+            className={`hover:underline text-left w-full ${
+              isHighlighted ? '' : 'text-gray-900 hover:text-gray-700'
+            }`}
+            style={isHighlighted ? { ...dateStyle, color: dateStyle.color || '#ffffff' } : {}}
+          >
+            {originalDate}
+          </button>
+        );
+      },
       cellStyle: (row: Job) => getDateCellStyle('machiningDate', row)
     },
     {
@@ -225,7 +381,31 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'Assembly',
       sortable: true,
       width: 100,
-      render: createDateRenderer(),
+      render: (value: string, row: Job) => {
+        // Use the original createDateRenderer logic but make it clickable
+        const originalDate = createDateRenderer()(value);
+        
+        const dateStyle = getDateCellStyle('assemblyDate', row);
+        const isHighlighted = Object.keys(dateStyle).length > 0;
+        
+        const handleJobClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onJobSelect(row.id);
+          onProjectSelect(row.projectId);
+        };
+
+        return (
+          <button
+            onClick={handleJobClick}
+            className={`hover:underline text-left w-full ${
+              isHighlighted ? '' : 'text-gray-900 hover:text-gray-700'
+            }`}
+            style={isHighlighted ? { ...dateStyle, color: dateStyle.color || '#ffffff' } : {}}
+          >
+            {originalDate}
+          </button>
+        );
+      },
       cellStyle: (row: Job) => getDateCellStyle('assemblyDate', row)
     },
     {
@@ -233,7 +413,31 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'Delivery',
       sortable: true,
       width: 100,
-      render: createDateRenderer(),
+      render: (value: string, row: Job) => {
+        // Use the original createDateRenderer logic but make it clickable
+        const originalDate = createDateRenderer()(value);
+        
+        const dateStyle = getDateCellStyle('deliveryDate', row);
+        const isHighlighted = Object.keys(dateStyle).length > 0;
+        
+        const handleJobClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onJobSelect(row.id);
+          onProjectSelect(row.projectId);
+        };
+
+        return (
+          <button
+            onClick={handleJobClick}
+            className={`hover:underline text-left w-full ${
+              isHighlighted ? '' : 'text-gray-900 hover:text-gray-700'
+            }`}
+            style={isHighlighted ? { ...dateStyle, color: dateStyle.color || '#ffffff' } : {}}
+          >
+            {originalDate}
+          </button>
+        );
+      },
       cellStyle: (row: Job) => getDateCellStyle('deliveryDate', row)
     },
     {
@@ -241,7 +445,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
       label: 'Comments',
       sortable: true,
       width: 200,
-      render: (value: string) => value || '-'
+      render: (value: string, row: Job) => createJobClickableCell(value, row)
     },
     {
       key: 'createdAt',
@@ -449,6 +653,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
   // Handle row click
   const handleRowClick = (job: Job) => {
     onJobSelect(job.id);
+    onProjectSelect(job.projectId);
   };
 
   // Apply filters to jobs data
@@ -476,19 +681,26 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
 
     // Client filter
     if (filters.client) {
-      filtered = filtered.filter(job => job.clientName === filters.client);
+      filtered = filtered.filter(job => {
+        // Handle null/undefined clientName cases and trim whitespace
+        const jobClientName = (job.clientName || '').trim();
+        const filterClientName = (filters.client || '').trim();
+        return jobClientName === filterClientName;
+      });
     }
 
     // Project filter
     if (filters.project) {
-      filtered = filtered.filter(job => job.projectName === filters.project);
+      filtered = filtered.filter(job => {
+        // Handle null/undefined projectName cases and trim whitespace
+        const jobProjectName = (job.projectName || '').trim();
+        const filterProjectName = (filters.project || '').trim();
+        return jobProjectName === filterProjectName;
+      });
     }
 
     // Date range filter (using any date column)
     if (filters.dateFrom || filters.dateTo) {
-      console.log('Date filtering active:', { dateFrom: filters.dateFrom, dateTo: filters.dateTo });
-      console.log('Jobs before date filter:', filtered.length);
-      
       filtered = filtered.filter(job => {
         const dates = [
           job.nestingDate,
@@ -497,30 +709,16 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
           job.deliveryDate
         ].filter(Boolean).map(date => new Date(date!));
 
-        if (dates.length === 0) {
-          console.log('Job', job.id, 'has no dates, excluding');
-          return false;
-        }
+        if (dates.length === 0) return false;
 
         const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
 
-        console.log('Job', job.id, 'dates:', { minDate, maxDate, dateFrom: filters.dateFrom, dateTo: filters.dateTo });
+        if (filters.dateFrom && minDate < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && maxDate > new Date(filters.dateTo)) return false;
 
-        if (filters.dateFrom && minDate < new Date(filters.dateFrom)) {
-          console.log('Job', job.id, 'excluded: minDate', minDate, 'before dateFrom', new Date(filters.dateFrom));
-          return false;
-        }
-        if (filters.dateTo && maxDate > new Date(filters.dateTo)) {
-          console.log('Job', job.id, 'excluded: maxDate', maxDate, 'after dateTo', new Date(filters.dateTo));
-          return false;
-        }
-
-        console.log('Job', job.id, 'included in date filter');
         return true;
       });
-      
-      console.log('Jobs after date filter:', filtered.length);
     }
 
     // Hide completed filter - only hide "delivered" jobs
@@ -536,8 +734,8 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     }
 
     // Add week separators if enabled
-    if (filters.showWeekSeparators && (filters.dateFrom || filters.dateTo)) {
-      const jobsWithSeparators: (Job | { isWeekSeparator: true; weekInfo: string })[] = [];
+    if (filters.showWeekSeparators) {
+      const jobsWithSeparators: (Job | WeekSeparator)[] = [];
       
       // Helper function to get the date to use for calculations based on settings
       const getCalculationDate = (job: Job) => {
@@ -560,7 +758,17 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
             break;
         }
         
-        return dateToUse ? new Date(dateToUse) : null;
+        // Parse DD/MM/YYYY format correctly
+        if (!dateToUse) return null;
+        
+        const parts = dateToUse.split('/');
+        if (parts.length === 3) {
+          // Convert DD/MM/YYYY to MM/DD/YYYY for JavaScript Date constructor
+          const [day, month, year] = parts;
+          return new Date(`${month}/${day}/${year}`);
+        }
+        
+        return new Date(dateToUse);
       };
 
       // Helper function to get week start date based on settings
@@ -616,13 +824,11 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
         
         // If this is a new week, add a separator
         if (currentWeekIdentifier !== weekIdentifier) {
-          if (currentWeekIdentifier !== '') {
-            // Add separator between weeks
-            jobsWithSeparators.push({
-              isWeekSeparator: true,
-              weekInfo: `Week of ${weekIdentifier}`
-            });
-          }
+          // Add separator before the jobs of the new week
+          jobsWithSeparators.push({
+            isWeekSeparator: true,
+            weekInfo: `Week of ${weekIdentifier}`
+          });
           currentWeekIdentifier = weekIdentifier;
         }
         
@@ -633,16 +839,41 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
     }
 
     return filtered;
-  }, [jobs, filters]);
+  }, [jobs, filters, displaySettings]);
 
   return (
     <ProtectedRoute>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
-          <Button variant="primary">
-            Add New Job
-          </Button>
+      <div className="p-6 print:p-0">
+        <div className="flex justify-between items-center mb-6 print:mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 print:text-xl print:mb-1">Jobs</h1>
+            <div className="hidden print:block text-sm text-gray-600 mt-1">
+              {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 print:hidden">
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                const visibleColumns = columns.filter(col => {
+                  const pref = preferences.find(p => p.columnName === col.key);
+                  return pref ? pref.isVisible : true; // Show by default if no preference
+                });
+                openShareView(filteredJobs, columns, visibleColumns);
+              }}
+            >
+              📤 Share
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={handlePrint}
+            >
+              🖨️ Print
+            </Button>
+            <Button variant="primary">
+              Add New Job
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -655,7 +886,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
         )}
 
         {multiSort.length > 0 && (
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between print:hidden">
             <div className="text-sm text-gray-600 flex items-center space-x-2">
               <span>Multi-sort active:</span>
               {multiSort.map((sort) => (
@@ -673,7 +904,7 @@ function Jobs({ onProjectSelect, onJobSelect }: JobsProps) {
           </div>
         )}
         
-        <div className="mb-2">
+        <div className="mb-2 print:hidden">
           <div className="text-xs text-gray-500">
             💡 Tip: Click column headers to sort. Hold Ctrl/Cmd + click to add multiple sorts.
           </div>

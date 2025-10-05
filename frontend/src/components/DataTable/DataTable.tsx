@@ -112,12 +112,18 @@ function DataTable<T extends Record<string, any>>({
   const processedData = useMemo(() => {
     let filtered = [...data];
 
+    // Check if data contains week separators - if so, skip internal processing
+    const hasWeekSeparators = data.some(item => (item as any).isWeekSeparator);
+    if (hasWeekSeparators) {
+      return filtered;
+    }
+
     // Apply filters
     Object.entries(currentFilters).forEach(([key, value]) => {
       if (!value || (Array.isArray(value) && value.length === 0)) return;
       
       // Skip filters handled by parent component's custom logic
-      if (key === 'search' || key === 'dateFrom' || key === 'dateTo' || key === 'showWeekSeparators' || key === 'hideCompleted') return;
+      if (key === 'search' || key === 'dateFrom' || key === 'dateTo' || key === 'showWeekSeparators' || key === 'hideCompleted' || key === 'client' || key === 'project') return;
       
       filtered = filtered.filter((item) => {
         const itemValue = item[key];
@@ -471,10 +477,11 @@ function DataTable<T extends Record<string, any>>({
                 // Check if this is a week separator row
                 if ((row as any).isWeekSeparator) {
                   return (
-                    <tr key={`separator-${index}`} className="bg-gray-100">
+                    <tr key={`separator-${index}`} className="bg-orange-50 border-t-4 border-orange-200">
                       <td 
                         colSpan={visibleColumns.length + (selectable ? 1 : 0)}
-                        className="px-3 py-2 text-center text-sm font-medium text-gray-700 border-t-2 border-gray-300"
+                        className="px-6 py-4 text-center text-base font-bold text-orange-800"
+                        style={{ minHeight: '50px' }}
                       >
                         📅 {(row as any).weekInfo}
                       </td>

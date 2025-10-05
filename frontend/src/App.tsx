@@ -105,7 +105,10 @@ const AppContent: React.FC = () => {
         if (selectedJobId && selectedProjectId) {
           return <JobDetails jobId={selectedJobId} projectId={selectedProjectId} onBack={handleBackToProject} />;
         }
-        return <Jobs onProjectSelect={handleProjectSelect} onJobSelect={handleJobSelect} />;
+        if (selectedClientId) {
+          return <ClientDetails clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />;
+        }
+        return <Jobs onProjectSelect={handleProjectSelect} onJobSelect={handleJobSelect} onClientSelect={handleClientSelect} />;
       case 'Clients':
         if (selectedClientId) {
           return <ClientDetails clientId={selectedClientId} onBack={handleBackToClients} />;

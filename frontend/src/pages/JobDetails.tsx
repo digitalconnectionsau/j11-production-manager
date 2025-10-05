@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface Job {
   id: number;
@@ -33,6 +34,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -164,6 +167,33 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!job) return;
+    
+    setDeleting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/jobs/${job.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete job');
+      }
+
+      // Navigate back after successful deletion
+      onBack();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete job');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'delivered':
@@ -263,16 +293,26 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
               <p className="text-gray-600 mt-1">Project: {job.projectName}</p>
             )}
           </div>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isEditing 
-                ? 'bg-gray-500 hover:bg-gray-600 text-white' 
-                : 'bg-primary hover:opacity-90 text-white'
-            }`}
-          >
-            {isEditing ? 'Cancel' : 'Edit Job'}
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                isEditing 
+                  ? 'bg-gray-500 hover:bg-gray-600 text-white' 
+                  : 'bg-primary hover:opacity-90 text-white'
+              }`}
+            >
+              {isEditing ? 'Cancel' : 'Edit Job'}
+            </button>
+            {!isEditing && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-4 py-2 rounded-lg font-medium transition-colors bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete Job
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -540,6 +580,19 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Job"
+        description={`Are you sure you want to delete job #${job?.id} - ${job?.items}? This action cannot be undone.`}
+        confirmText="This will permanently delete the job and all its data."
+        confirmButtonText="Delete Job"
+        isDestructive={true}
+        isLoading={deleting}
+      />
     </div>
   );
 };
