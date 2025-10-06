@@ -302,7 +302,7 @@ const Clients: React.FC<ClientsProps> = ({ onClientSelect }) => {
         }
       />
       
-      <div className="px-6 print:p-0">
+      <div className="px-6 pt-4 print:p-0">
         <div className="hidden print:block text-sm text-gray-600 mb-4">
           {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
         </div>

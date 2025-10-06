@@ -226,7 +226,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         }
       />
       
-      <div className="px-6">
+      <div className="px-6 pt-4">
 
       {/* Search and Filter Controls */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">

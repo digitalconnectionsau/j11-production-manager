@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useScrollRestoration, useMinimumScroll } from '../hooks/useScrollPosition';
+
 import ConfirmationModal from '../components/ConfirmationModal';
 import PageHeader from '../components/PageHeader';
 import { calculateJobDates, type LeadTime, type JobStatus } from '../utils/dateCalculations';
@@ -36,11 +36,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Maintain scroll position during data fetches
-  useScrollRestoration(loading, `job-${jobId}`, 60);
 
-  // Prevent scrolling above the TopBar
-  useMinimumScroll(60);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
   const [saving, setSaving] = useState(false);
@@ -372,7 +368,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   }
 
   return (
-    <div>
+    <div className="pt-4">
       <PageHeader
         title={`Job #${job.id} - ${job.items}`}
         description={job.projectName ? `Project: ${job.projectName}` : undefined}
