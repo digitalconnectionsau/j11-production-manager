@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import { useScrollRestoration } from '../hooks/useScrollPosition';
 import { formatDate as formatDateUtil, parseAustralianDate } from '../utils/dateUtils';
 import { apiRequest } from '../utils/api';
 import AddJobModal from '../components/AddJobModal';
@@ -96,6 +97,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Maintain scroll position during data fetches
+  useScrollRestoration(loading, `project-${projectId}`, 80);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Project | null>(null);
   const [isPinning, setIsPinning] = useState(false);
