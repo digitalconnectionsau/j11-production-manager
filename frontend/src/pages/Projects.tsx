@@ -1,5 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import { useTableShare } from '../hooks/useTableShare';
+import { DataTable } from '../components/DataTable';
+import type { TableColumn, FilterConfig, SortConfig, MultiSortConfig } from '../components/DataTable';
+import { createDateRenderer } from '../components/DataTable/utils';
+import { apiRequest, API_ENDPOINTS } from '../utils/api';
+import Button from '../components/ui/Button';
+import ErrorDisplay from '../components/ErrorDisplay';
+import ProtectedRoute from '../components/ProtectedRoute';
 import AddProjectModal from '../components/AddProjectModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PageHeader from '../components/PageHeader';
@@ -27,168 +36,323 @@ interface ProjectsProps {
 }
 
 const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
-  const [showAddModal, setShowAddModal] = useState(false);
+  const { token } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<{id: number; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
-
-  // Filter and search states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [sortField, setSortField] = useState<'name' | 'client' | 'status' | 'progress' | 'jobs'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showAddModal, setShowAddModal] = useState(false);
+  
+  // Filters state
+  const [filters, setFilters] = useState<Record<string, any>>({
+    search: '',
+    status: '',
+    client: '',
+    dateFrom: '',
+    dateTo: ''
+  });
+  
+  // Sorting state
+  const [sort, setSort] = useState<SortConfig>({ field: 'name', direction: 'asc' });
+  const [multiSort, setMultiSort] = useState<MultiSortConfig[]>([]);
 
   // Deletion modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  
+  // Column preferences
+  const { preferences, updatePreferences } = useColumnPreferences('projects');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-  const fetchProjects = async () => {
-    if (!token) return;
+  // Helper function to describe active filters
+  const getActiveFiltersDescription = () => {
+    const activeFilters = [];
+    if (filters.search) activeFilters.push(`Search: "${filters.search}"`);
+    if (filters.status) activeFilters.push(`Status: ${filters.status}`);
+    if (filters.client) activeFilters.push(`Client: ${filters.client}`);
+    if (filters.dateFrom || filters.dateTo) {
+      let dateRange = 'Date: ';
+      if (filters.dateFrom && filters.dateTo) {
+        dateRange += `${filters.dateFrom} to ${filters.dateTo}`;
+      } else if (filters.dateFrom) {
+        dateRange += `from ${filters.dateFrom}`;
+      } else {
+        dateRange += `until ${filters.dateTo}`;
+      }
+      activeFilters.push(dateRange);
+    }
     
+    return activeFilters.length > 0 ? activeFilters.join(' • ') : 'All projects';
+  };
+  
+  // Print and share functionality
+  const { handlePrint, openShareView } = useTableShare({
+    title: 'J11 Production Manager - Projects Report',
+    subtitle: getActiveFiltersDescription()
+  });
+
+  // Load data function
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/projects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      
+      const [projectsResponse, clientsResponse] = await Promise.all([
+        apiRequest(API_ENDPOINTS.projects, {}, token || ''),
+        apiRequest(API_ENDPOINTS.clients, {}, token || '')
+      ]);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch projects');
-      }
-
-      const data = await response.json();
-      setProjects(data);
+      setProjects(projectsResponse.data);
+      setClients(clientsResponse.data);
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch projects');
+      console.error('Error loading data:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   const deleteProject = async () => {
     if (!projectToDelete || !token) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/projects/${projectToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiRequest(`/api/projects/${projectToDelete.id}`, {
+        method: 'DELETE'
+      }, token);
 
-      if (!response.ok) {
-        throw new Error('Failed to delete project');
+      if (response.success) {
+        setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+        setShowDeleteModal(false);
+        setProjectToDelete(null);
+      } else {
+        throw new Error(response.error || 'Failed to delete project');
       }
-
-      setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
-      setShowDeleteModal(false);
-      setProjectToDelete(null);
     } catch (err) {
+      console.error('Error deleting project:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete project');
     }
   };
 
+  // Load data on component mount and when token changes
   useEffect(() => {
-    fetchProjects();
-  }, [token]);
+    if (token) {
+      loadData();
+    }
+  }, [loadData, token]);  // Helper function to create clickable cell for project navigation
+  const createProjectClickableCell = (value: any, row: Project, className?: string) => {
+    const handleProjectClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onProjectSelect(row.id);
+    };
 
-  useEffect(() => {
-    let filtered = [...projects];
+    return (
+      <button
+        onClick={handleProjectClick}
+        className={`text-gray-900 hover:text-gray-700 hover:underline text-left w-full ${className || ''}`}
+      >
+        {value || '-'}
+      </button>
+    );
+  };
 
-    // Apply search filter
-    if (searchTerm) {
+  // Define table columns
+  const columns: TableColumn<Project>[] = [
+    {
+      key: 'id',
+      label: 'ID',
+      sortable: true,
+      width: 80,
+      className: 'font-mono text-sm',
+      render: (value: number, row: Project) => createProjectClickableCell(value, row, 'font-mono text-sm')
+    },
+    {
+      key: 'name',
+      label: 'Project Name',
+      sortable: true,
+      width: 200,
+      render: (value: string, row: Project) => createProjectClickableCell(value, row, 'font-medium')
+    },
+    {
+      key: 'client',
+      label: 'Client',
+      sortable: true,
+      width: 150,
+      render: (_value: any, row: Project) => {
+        const clientName = row.client?.name || '-';
+        return createProjectClickableCell(clientName, row);
+      }
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      width: 120,
+      render: (value: string, _row: Project) => {
+        const getStatusColor = (status: string) => {
+          switch (status.toLowerCase()) {
+            case 'active':
+              return 'bg-green-100 text-green-800';
+            case 'completed':
+              return 'bg-blue-100 text-blue-800';
+            case 'on-hold':
+              return 'bg-yellow-100 text-yellow-800';
+            case 'cancelled':
+              return 'bg-red-100 text-red-800';
+            default:
+              return 'bg-gray-100 text-gray-800';
+          }
+        };
+        
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(value)}`}>
+            {value}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      sortable: true,
+      width: 100,
+      render: (value: number) => {
+        const getProgressColor = (progress: number) => {
+          if (progress >= 80) return 'bg-green-500';
+          if (progress >= 50) return 'bg-yellow-500';
+          if (progress >= 20) return 'bg-orange-500';
+          return 'bg-red-500';
+        };
+        
+        return (
+          <div className="flex items-center">
+            <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
+              <div 
+                className={`h-2 rounded-full ${getProgressColor(value)}`}
+                style={{ width: `${value}%` }}
+              ></div>
+            </div>
+            <span className="text-sm font-medium text-gray-700 min-w-[3rem]">
+              {value}%
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'jobCount',
+      label: 'Jobs',
+      sortable: true,
+      width: 80,
+      render: (value: number, row: Project) => {
+        return (
+          <div className="text-center">
+            <span className="text-sm font-medium text-gray-900">
+              {row.completedJobCount}/{value}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'createdAt',
+      label: 'Created',
+      sortable: true,
+      width: 120,
+      render: createDateRenderer()
+    }
+  ];
+
+
+
+  // Define filters
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Search projects...'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'Active', label: 'Active' },
+        { value: 'Completed', label: 'Completed' },
+        { value: 'On-Hold', label: 'On-Hold' },
+        { value: 'Cancelled', label: 'Cancelled' }
+      ]
+    },
+    {
+      key: 'client',
+      label: 'Client',
+      type: 'select',
+      options: [
+        ...clients.map(client => ({
+          value: client.name,
+          label: client.name
+        }))
+      ]
+    },
+    {
+      key: 'dateFrom',
+      label: 'Date From',
+      type: 'date'
+    },
+    {
+      key: 'dateTo',
+      label: 'Date To', 
+      type: 'date'
+    }
+  ];
+
+  // Handle row click
+  const handleRowClick = (project: Project) => {
+    onProjectSelect(project.id);
+  };
+
+  // Apply filters to projects data
+  const filteredProjects = React.useMemo(() => {
+    let filtered = projects;
+
+    // Text search - searches across Project Name, Description, and Client columns
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.client?.company?.toLowerCase().includes(searchTerm.toLowerCase())
+        project.name?.toLowerCase().includes(searchTerm) ||
+        project.description?.toLowerCase().includes(searchTerm) ||
+        project.client?.name?.toLowerCase().includes(searchTerm) ||
+        project.client?.company?.toLowerCase().includes(searchTerm)
       );
     }
 
-    // Apply status filter
-    if (statusFilter !== 'All') {
-      filtered = filtered.filter(project => project.status === statusFilter);
+    // Status filter
+    if (filters.status) {
+      filtered = filtered.filter(project => project.status === filters.status);
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortField) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case 'client':
-          aValue = a.client?.name?.toLowerCase() || '';
-          bValue = b.client?.name?.toLowerCase() || '';
-          break;
-        case 'status':
-          aValue = a.status.toLowerCase();
-          bValue = b.status.toLowerCase();
-          break;
-        case 'progress':
-          aValue = a.progress;
-          bValue = b.progress;
-          break;
-        case 'jobs':
-          aValue = a.jobCount;
-          bValue = b.jobCount;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    setFilteredProjects(filtered);
-  }, [projects, searchTerm, statusFilter, sortField, sortDirection]);
-
-  const handleSort = (field: 'name' | 'client' | 'status' | 'progress' | 'jobs') => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+    // Client filter
+    if (filters.client) {
+      filtered = filtered.filter(project => {
+        const projectClientName = (project.client?.name || '').trim();
+        const filterClientName = (filters.client || '').trim();
+        return projectClientName === filterClientName;
+      });
     }
-  };
 
-  const getStatusInfo = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return { backgroundColor: '#dcfce7', textColor: '#166534' }; // green-100/green-800
-      case 'completed':
-        return { backgroundColor: '#dbeafe', textColor: '#1e40af' }; // blue-100/blue-800
-      case 'on-hold':
-        return { backgroundColor: '#fef3c7', textColor: '#92400e' }; // yellow-100/yellow-800
-      case 'cancelled':
-        return { backgroundColor: '#fee2e2', textColor: '#991b1b' }; // red-100/red-800
-      default:
-        return { backgroundColor: '#f3f4f6', textColor: '#374151' }; // gray-100/gray-800
+    // Date range filter (using created date)
+    if (filters.dateFrom || filters.dateTo) {
+      filtered = filtered.filter(project => {
+        const projectDate = new Date(project.createdAt);
+
+        if (filters.dateFrom && projectDate < new Date(filters.dateFrom)) return false;
+        if (filters.dateTo && projectDate > new Date(filters.dateTo)) return false;
+
+        return true;
+      });
     }
-  };
 
-  const getPriorityColor = (progress: number) => {
-    if (progress >= 80) return 'bg-green-500';
-    if (progress >= 50) return 'bg-yellow-500';
-    if (progress >= 20) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
-
-  const getSortIcon = (field: string) => {
-    if (sortField !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
-  };
+    return filtered;
+  }, [projects, filters]);
 
   if (loading) {
     return (
@@ -211,181 +375,111 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
   }
 
   return (
-    <div>
+    <ProtectedRoute>
       <PageHeader
         title="Projects"
         description="Organize and manage client projects. Track progress, assign jobs, and monitor deliverables across all active projects."
         breadcrumbs={[]}
         actions={
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 transition-colors"
-          >
-            Add Project
-          </button>
+          <div className="flex items-center space-x-3 print:hidden">
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                const visibleColumns = columns.filter(col => {
+                  const pref = preferences.find(p => p.columnName === col.key);
+                  return pref ? pref.isVisible : true; // Show by default if no preference
+                });
+                openShareView(filteredProjects, columns, visibleColumns);
+              }}
+            >
+              📤 Share
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={handlePrint}
+            >
+              🖨️ Print
+            </Button>
+            <Button 
+              variant="primary"
+              onClick={() => setShowAddModal(true)}
+            >
+              Add Project
+            </Button>
+          </div>
         }
       />
       
-      <div className="px-6 pt-4">
+      <div className="px-6 pt-4 print:p-0">
 
-      {/* Search and Filter Controls */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
+      <div className="hidden print:block text-sm text-gray-600 mb-4">
+          {getActiveFiltersDescription()} • Generated: {new Date().toLocaleString()}
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-        >
-          <option value="All">All Statuses</option>
-          <option value="Active">Active</option>
-          <option value="Completed">Completed</option>
-          <option value="On-Hold">On-Hold</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
-      </div>
 
-      {/* Projects Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('name')}
-              >
-                Project Name {getSortIcon('name')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('client')}
-              >
-                Client {getSortIcon('client')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('status')}
-              >
-                Status {getSortIcon('status')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('progress')}
-              >
-                Progress {getSortIcon('progress')}
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('jobs')}
-              >
-                Jobs {getSortIcon('jobs')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredProjects.map((project) => (
-              <tr key={project.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => onProjectSelect(project.id)}
-                    className="text-sm font-medium text-gray-900 hover:text-orange-600 hover:underline"
-                  >
-                    {project.name}
-                  </button>
-                  {project.description && (
-                    <div className="text-sm text-gray-500 mt-1">
-                      {project.description}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {project.client?.name || 'No client assigned'}
-                  </div>
-                  {project.client?.company && (
-                    <div className="text-sm text-gray-500">
-                      {project.client.company}
-                    </div>
-                  )}
-                </td>
-                <td 
-                  className="px-6 py-4 whitespace-nowrap text-sm font-medium"
-                  style={{ 
-                    backgroundColor: getStatusInfo(project.status).backgroundColor,
-                    color: getStatusInfo(project.status).textColor
-                  }}
-                >
-                  {project.status}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
-                      <div
-                        className={`h-2 rounded-full ${getPriorityColor(project.progress)}`}
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-gray-600 min-w-0">{project.progress}%</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <button
-                    onClick={() => onProjectSelect(project.id)}
-                    className="hover:text-orange-600 hover:underline"
-                  >
-                    {project.completedJobCount}/{project.jobCount}
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => onProjectSelect(project.id)}
-                    className="text-orange-600 hover:text-orange-900 mr-3"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProjectToDelete(project);
-                      setShowDeleteModal(true);
-                    }}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {error && (
+          <ErrorDisplay 
+            type="error" 
+            message={error}
+            onRetry={() => window.location.reload()}
+            className="mb-4"
+          />
+        )}
 
-        {filteredProjects.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No projects found.</p>
-            {(searchTerm || statusFilter !== 'All') && (
-              <p className="text-sm text-gray-400 mt-2">
-                Try adjusting your search or filter criteria.
-              </p>
-            )}
+        {multiSort.length > 0 && (
+          <div className="mb-2 flex items-center justify-between print:hidden">
+            <div className="text-sm text-gray-600 flex items-center space-x-2">
+              <span>Multi-sort active:</span>
+              {multiSort.map((sort) => (
+                <span key={sort.field} className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">
+                  {sort.priority}. {columns.find(col => col.key === sort.field)?.label} {sort.direction === 'asc' ? '↑' : '↓'}
+                </span>
+              ))}
+            </div>
+            <button 
+              onClick={() => setMultiSort([])}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Clear all sorts
+            </button>
           </div>
         )}
-      </div>
+        
+        <div className="mb-2 print:hidden">
+          <div className="text-xs text-gray-500">
+            💡 Tip: Click column headers to sort. Hold Ctrl/Cmd + click to add multiple sorts.
+          </div>
+        </div>
+
+        <DataTable
+          data={filteredProjects}
+          columns={columns}
+          loading={loading}
+          error={error}
+          filters={filterConfigs}
+          currentFilters={filters}
+          onFiltersChange={setFilters}
+          defaultSort={sort}
+          onSortChange={setSort}
+          multiSort={multiSort}
+          onMultiSortChange={setMultiSort}
+          onRowClick={handleRowClick}
+          columnPreferences={preferences}
+          onColumnPreferencesChange={updatePreferences}
+          resizableColumns={true}
+          className="mb-8"
+          emptyMessage="No projects found"
+          emptySubMessage="Try adjusting your filters or create a new project"
+        />
       </div>
 
       {/* Add Project Modal */}
       <AddProjectModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onProjectAdded={fetchProjects}
+        onProjectAdded={async () => {
+          setShowAddModal(false);
+          await loadData(); // Reload projects after adding a new one
+        }}
       />
 
       {/* Delete Confirmation Modal */}
@@ -399,7 +493,7 @@ const Projects: React.FC<ProjectsProps> = ({ onProjectSelect }) => {
         confirmButtonText="Delete"
         isDestructive={true}
       />
-    </div>
+    </ProtectedRoute>
   );
 };
 
