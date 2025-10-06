@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
-import { formatDate as formatDateUtil } from '../utils/dateUtils';
+import { formatDate as formatDateUtil, parseAustralianDate } from '../utils/dateUtils';
 import { apiRequest } from '../utils/api';
 import AddJobModal from '../components/AddJobModal';
 import BulkUploadModal from '../components/BulkUploadModal';
 import PageHeader from '../components/PageHeader';
 import { DataTable } from '../components/DataTable';
-import type { TableColumn } from '../components/DataTable';
-import Button from '../components/ui/Button';
+import type { TableColumn, FilterConfig } from '../components/DataTable';
 
 interface ColumnTarget {
   column: string;
   color: string;
+}
+
+interface WeekSeparator {
+  isWeekSeparator: true;
+  weekInfo: string;
 }
 
 interface Job {
@@ -101,6 +105,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
   
   // Column preferences for project jobs table
   const { preferences, updatePreferences } = useColumnPreferences('project-jobs');
+  
+  // Filters state for jobs table
+  const [filters, setFilters] = useState<Record<string, any>>({
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    showWeekSeparators: false,
+    hideCompleted: false  // Changed from hideDelivered to match DataTable expectation
+  });
   
   // Date columns that must stay in fixed order
   const dateColumns = ['nestingDate', 'machiningDate', 'assemblyDate', 'deliveryDate'];
@@ -445,52 +458,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     };
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-light-grey rounded w-1/4 mb-4"></div>
-          <div className="h-8 bg-light-grey rounded w-1/2 mb-6"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-light-grey rounded"></div>
-            <div className="h-4 bg-light-grey rounded w-5/6"></div>
-            <div className="h-4 bg-light-grey rounded w-4/6"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <button
-          onClick={onBack}
-          className="mb-4 text-primary hover:opacity-80 flex items-center"
-        >
-          ← Back to Projects
-        </button>
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-800">Error: {error}</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="p-6">
-        <button
-          onClick={onBack}
-          className="mb-4 text-primary hover:opacity-80 flex items-center"
-        >
-          ← Back to Projects
-        </button>
-        <div className="text-charcoal">Project not found</div>
-      </div>
-    );
-  }
-
   // DataTable column configuration for jobs
   const columns: TableColumn[] = [
     {
@@ -608,6 +575,234 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     }
   ];
 
+  // Define filters for project jobs table
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Search jobs...'
+    },
+    {
+      key: 'dateFrom',
+      label: 'From',
+      type: 'date'
+    },
+    {
+      key: 'dateTo',
+      label: 'To', 
+      type: 'date'
+    },
+    {
+      key: 'showWeekSeparators',
+      label: 'Week Separators',
+      type: 'toggle',
+      placeholder: 'Show week breaks in table'
+    },
+    {
+      key: 'hideCompleted',
+      label: 'Hide Delivered',
+      type: 'toggle',
+      placeholder: 'Hide delivered jobs'
+    }
+  ];
+
+  // Apply filters to project jobs data (always do manual filtering, like Jobs.tsx)
+  const processedJobs = useMemo(() => {
+    if (!project?.jobs) return [];
+    
+    // Apply filters manually using separate passes (like Jobs.tsx)
+    let filtered = project.jobs;
+
+    // Search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filtered = filtered.filter(job => {
+        const searchableFields = [
+          job.id?.toString(),          // Job number
+          job.unit,                    // Unit 
+          job.type,                    // Type
+          job.items,                   // Items
+          job.comments,                // Comments
+          job.statusInfo?.displayName || job.status  // Status (for completeness)
+        ];
+        
+        const matchesSearch = searchableFields.some(field => 
+          field?.toLowerCase().includes(searchTerm)
+        );
+        
+        return matchesSearch;
+      });
+    }
+    
+    // Date range filter (using any date column)
+    if (filters.dateFrom || filters.dateTo) {
+      filtered = filtered.filter(job => {
+        const jobDates = [
+          job.nestingDate,
+          job.machiningDate,
+          job.assemblyDate,
+          job.deliveryDate
+        ].filter(Boolean);
+        
+        const hasDateInRange = jobDates.some(dateStr => {
+          if (!dateStr) return false;
+          
+          // Use our Australian date parser
+          const jobDate = parseAustralianDate(dateStr);
+          if (!jobDate) return false;
+          
+          if (filters.dateFrom) {
+            const fromDate = new Date(filters.dateFrom);
+            if (jobDate < fromDate) return false;
+          }
+          
+          if (filters.dateTo) {
+            const toDate = new Date(filters.dateTo);
+            if (jobDate > toDate) return false;
+          }
+          
+          return true;
+        });
+        
+        return hasDateInRange;
+      });
+    }
+    
+    // Hide delivered filter - only hide "delivered" jobs
+    if (filters.hideCompleted) {
+      filtered = filtered.filter(job => {
+        const isDelivered = 
+          job.status?.toLowerCase() === 'delivered' ||
+          job.statusInfo?.name?.toLowerCase() === 'delivered' ||
+          job.statusInfo?.displayName?.toLowerCase() === 'delivered';
+        
+        return !isDelivered; // Return jobs that are NOT delivered
+      });
+    }
+
+    // Add week separators if enabled
+    if (filters.showWeekSeparators) {
+      const jobsWithSeparators: (Job | WeekSeparator)[] = [];
+      
+      // Helper to get delivery date for week calculations
+      const getDeliveryDate = (job: Job) => {
+        if (!job.deliveryDate) return null;
+        return parseAustralianDate(job.deliveryDate);
+      };
+      
+      // Helper to get week start (Monday)
+      const getWeekStart = (date: Date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // Monday start
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+      
+      // Helper to format week info
+      const formatWeekInfo = (weekStart: Date) => {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const formatDate = (date: Date) => {
+          return date.toLocaleDateString('en-AU', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric' 
+          });
+        };
+        
+        return `Week of ${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
+      };
+      
+      // Sort jobs by delivery date
+      const sortedJobs = [...filtered].sort((a, b) => {
+        const dateA = getDeliveryDate(a);
+        const dateB = getDeliveryDate(b);
+        
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      let currentWeek: string | null = null;
+      
+      for (const job of sortedJobs) {
+        const deliveryDate = getDeliveryDate(job);
+        
+        if (deliveryDate) {
+          const weekStart = getWeekStart(deliveryDate);
+          const weekInfo = formatWeekInfo(weekStart);
+          
+          if (weekInfo !== currentWeek) {
+            currentWeek = weekInfo;
+            jobsWithSeparators.push({
+              isWeekSeparator: true,
+              weekInfo
+            });
+          }
+        }
+        
+        jobsWithSeparators.push(job);
+      }
+      
+      return jobsWithSeparators;
+    }
+    
+    // Return filtered jobs without week separators
+    return filtered;
+  }, [project?.jobs, filters]);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-light-grey rounded w-1/4 mb-4"></div>
+          <div className="h-8 bg-light-grey rounded w-1/2 mb-6"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-light-grey rounded"></div>
+            <div className="h-4 bg-light-grey rounded w-5/6"></div>
+            <div className="h-4 bg-light-grey rounded w-4/6"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <button
+          onClick={onBack}
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
+        >
+          ← Back to Projects
+        </button>
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="text-red-800">Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="p-6">
+        <button
+          onClick={onBack}
+          className="mb-4 text-primary hover:opacity-80 flex items-center"
+        >
+          ← Back to Projects
+        </button>
+        <div className="text-charcoal">Project not found</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <PageHeader
@@ -621,10 +816,10 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             <button
               onClick={togglePinProject}
               disabled={isPinning}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
                 project.isPinned
-                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                  : 'bg-light-grey hover:bg-opacity-80 text-charcoal'
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                  : 'bg-gray-500 hover:bg-gray-600 text-white'
               } ${isPinning ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <span className="text-sm">
@@ -642,7 +837,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 Edit Project
               </button>
@@ -653,30 +848,32 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
                     setIsEditing(false);
                     setEditForm(project);
                   }}
-                  className="bg-charcoal hover:opacity-80 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={updateProject}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Save Changes
                 </button>
               </div>
             )}
-            <Button 
-              variant="secondary" 
+            <button
               onClick={() => setShowBulkUploadModal(true)}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
             >
-              📁 Bulk Upload
-            </Button>
-            <Button 
-              variant="primary" 
+              <span>📁</span>
+              <span>Bulk Upload</span>
+            </button>
+            <button
               onClick={() => setShowAddJobModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
             >
-              + Add Job
-            </Button>
+              <span>+</span>
+              <span>Add Job</span>
+            </button>
           </div>
         }
       />
@@ -708,7 +905,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             onClick={() => setActiveTab('jobs')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'jobs'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -718,7 +915,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             onClick={() => setActiveTab('info')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'info'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -833,13 +1030,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
       {/* Jobs Tab */}
       {activeTab === 'jobs' && (
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
+          
           <DataTable
-            data={project.jobs || []}
+            data={processedJobs}
             columns={columns}
-            onRowClick={(job) => onJobSelect?.(job.id)}
+            onRowClick={(item) => {
+              // Only handle clicks on actual jobs, not week separators
+              if ('id' in item) {
+                onJobSelect?.(item.id);
+              }
+            }}
             loading={false}
-            emptyMessage="No jobs assigned to this project"
+            emptyMessage="No jobs found for this project"
+            filters={filterConfigs}
+            currentFilters={filters}
+            onFiltersChange={setFilters}
             columnPreferences={preferences}
             onColumnPreferencesChange={handleColumnPreferencesChange}
             resizableColumns={true}

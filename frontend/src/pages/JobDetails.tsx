@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
+import PageHeader from '../components/PageHeader';
 import { calculateJobDates, type LeadTime, type JobStatus } from '../utils/dateCalculations';
 
 interface Job {
@@ -357,31 +358,23 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={onBack}
-          className="mb-4 text-primary hover:opacity-80 flex items-center"
-        >
-          ← Back to Project
-        </button>
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Job #{job.id} - {job.items}
-            </h1>
-            {job.projectName && (
-              <p className="text-gray-600 mt-1">Project: {job.projectName}</p>
-            )}
-          </div>
-          <div className="flex space-x-3">
+    <div>
+      <PageHeader
+        title={`Job #${job.id} - ${job.items}`}
+        description={job.projectName ? `Project: ${job.projectName}` : undefined}
+        breadcrumbs={[
+          { label: 'Projects', onClick: onBack },
+          { label: job.projectName || 'Project', onClick: onBack },
+          { label: `Job #${job.id}` }
+        ]}
+        actions={
+          <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsEditing(!isEditing)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 isEditing 
                   ? 'bg-gray-500 hover:bg-gray-600 text-white' 
-                  : 'bg-primary hover:opacity-90 text-white'
+                  : 'bg-orange-500 hover:bg-orange-600 text-white'
               }`}
             >
               {isEditing ? 'Cancel' : 'Edit Job'}
@@ -395,10 +388,11 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
               </button>
             )}
           </div>
-        </div>
-      </div>
-
-      {isEditing ? (
+        }
+      />
+      
+      <div className="p-6">
+        {isEditing ? (
         /* Edit Form */
         <form onSubmit={handleSave} className="space-y-6">
           <div className="bg-white shadow rounded-lg p-6">
@@ -753,6 +747,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
