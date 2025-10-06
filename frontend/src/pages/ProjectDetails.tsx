@@ -189,6 +189,40 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     }
   };
 
+  // Debug function to check job status integrity
+  const debugJobStatus = (jobId: number) => {
+    if (!project?.jobs) return;
+    
+    const job = project.jobs.find(j => j.id === jobId);
+    if (!job) {
+      console.log(`Job ${jobId} not found`);
+      return;
+    }
+    
+    console.log(`=== Job ${jobId} Debug ===`);
+    console.log('Legacy status:', job.status);
+    console.log('Status ID:', job.statusId);
+    console.log('Status Info:', job.statusInfo);
+    
+    if (!job.statusInfo && job.status) {
+      console.log(`⚠️  Job ${jobId} has legacy status '${job.status}' but missing statusInfo`);
+      
+      // Try to find matching status from available job statuses
+      const matchingStatus = jobStatuses.find(s => s.name === job.status);
+      if (matchingStatus) {
+        console.log(`✅ Found matching status in jobStatuses:`, matchingStatus);
+      } else {
+        console.log(`❌ No matching status found in jobStatuses for '${job.status}'`);
+        console.log('Available statuses:', jobStatuses.map(s => s.name));
+      }
+    }
+  };
+
+  // Add to window for debugging (only in development)
+  if (import.meta.env.DEV) {
+    (window as any).debugJobStatus = debugJobStatus;
+  }
+
   // Fetch project details
   const fetchProject = async () => {
     if (!token) return;
@@ -374,6 +408,11 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
 
   const cycleJobStatus = async (jobId: number, currentStatus: string) => {
     if (jobStatuses.length === 0) return;
+    if (!token) {
+      console.error('❌ No authentication token available');
+      setError('Authentication required to update job status');
+      return;
+    }
     
     // Find current status index
     const currentIndex = jobStatuses.findIndex(status => status.name === currentStatus);
@@ -383,6 +422,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
     const nextStatus = jobStatuses[nextIndex];
     
     try {
+      console.log(`🔄 Updating job ${jobId} status: ${currentStatus} → ${nextStatus.name}`);
+      
       const response = await apiRequest(`/api/jobs/${jobId}`, {
         method: 'PUT',
         headers: {
@@ -392,10 +433,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
           status: nextStatus.name,
           statusId: nextStatus.id,
         }),
-      });
+      }, token || undefined);
 
+      console.log('📡 API Response:', response);
+      
       if (response.success) {
-        // Update the job in the local state instead of refetching entire project
+        console.log(`✅ Status update successful for job ${jobId}: ${currentStatus} → ${nextStatus.name}`);
+        console.log('✅ Updated job data:', response.data);
+        
+        // Update the job in the local state
         setProject(prevProject => {
           if (!prevProject || !prevProject.jobs) return prevProject;
           
@@ -422,12 +468,22 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             )
           };
         });
+        
+        // No need to reload the entire page - local state is already updated
       } else {
-        throw new Error('Failed to update job status');
+        console.error(`❌ Status update failed for job ${jobId}:`, response);
+        console.error('❌ Response status:', response.status);
+        console.error('❌ Response error:', response.error);
+        throw new Error(response.error || 'Failed to update job status');
       }
     } catch (err) {
-      console.error('Failed to update job status:', err);
-      setError('Failed to update job status');
+      console.error(`❌ Failed to update job ${jobId} status:`, err);
+      console.log('Available job statuses:', jobStatuses.map(s => `${s.id}: ${s.name}`));
+      console.log('Current status was:', currentStatus);
+      setError(`Failed to update job ${jobId} status: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      
+      // Refresh project data to ensure we have the latest state
+      fetchProject();
     }
   };
 
@@ -551,17 +607,27 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
           color: statusStyle.color,
         };
       },
-      render: (_value: any, row: any) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            cycleJobStatus(row.id, row.status);
-          }}
-          className="w-full text-left px-2 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          {row.statusInfo?.displayName || row.status.replace('-', ' ')}
-        </button>
-      )
+      render: (_value: any, row: any) => {
+        // Get display text with proper fallbacks
+        let displayText = 'No Status';
+        if (row.statusInfo?.displayName) {
+          displayText = row.statusInfo.displayName;
+        } else if (row.status) {
+          displayText = row.status.replace('-', ' ');
+        }
+        
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              cycleJobStatus(row.id, row.status);
+            }}
+            className="w-full text-left px-2 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            {displayText}
+          </button>
+        );
+      }
     },
     {
       key: 'comments',
@@ -1049,6 +1115,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack, onJo
             columnPreferences={preferences}
             onColumnPreferencesChange={handleColumnPreferencesChange}
             resizableColumns={true}
+            defaultSort={{ field: 'id', direction: 'asc' }}
           />
         </div>
       )}

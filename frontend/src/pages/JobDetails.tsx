@@ -15,6 +15,7 @@ interface Job {
   assemblyDate?: string;
   deliveryDate?: string;
   status: 'not-assigned' | 'nesting-complete' | 'machining-complete' | 'assembly-complete' | 'delivered';
+  statusId?: number;
   comments?: string;
   createdAt: string;
   updatedAt: string;
@@ -59,17 +60,19 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
   };
 
   // Get next status in the cycle
-  const getNextStatus = (currentStatus: string) => {
-    const currentIndex = statusOptions.findIndex(option => option.value === currentStatus);
-    const nextIndex = (currentIndex + 1) % statusOptions.length;
-    return statusOptions[nextIndex].value;
+  const getNextStatus = (currentStatus: string): JobStatus | null => {
+    if (jobStatuses.length === 0) return null;
+    const currentIndex = jobStatuses.findIndex(status => status.name === currentStatus);
+    const nextIndex = (currentIndex + 1) % jobStatuses.length;
+    return jobStatuses[nextIndex];
   };
 
   // Handle status cycling
   const handleStatusCycle = async () => {
-    if (!job || saving) return;
+    if (!job || saving || jobStatuses.length === 0) return;
 
     const nextStatus = getNextStatus(job.status);
+    if (!nextStatus) return;
     
     try {
       setSaving(true);
@@ -79,7 +82,11 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...job, status: nextStatus }),
+        body: JSON.stringify({ 
+          ...job, 
+          status: nextStatus.name,
+          statusId: nextStatus.id
+        }),
       });
 
       if (!response.ok) {
@@ -446,12 +453,19 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                 </label>
                 <select
                   value={editForm.status || ''}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                  onChange={(e) => {
+                    const selectedStatus = jobStatuses.find(s => s.name === e.target.value);
+                    setEditForm({ 
+                      ...editForm, 
+                      status: e.target.value as any,
+                      statusId: selectedStatus?.id
+                    });
+                  }}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {jobStatuses.map(status => (
+                    <option key={status.id} value={status.name}>
+                      {status.displayName}
                     </option>
                   ))}
                 </select>
@@ -685,7 +699,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({ jobId, onBack }) => {
                   onClick={handleStatusCycle}
                   disabled={saving}
                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 transition-all hover:opacity-80 hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-gray-300 ${getStatusColor(job.status)}`}
-                  title={`Click to change to: ${getStatusLabel(getNextStatus(job.status))}`}
+                  title={`Click to change to: ${getNextStatus(job.status)?.displayName || 'Next Status'}`}
                 >
                   {saving ? 'Updating...' : getStatusLabel(job.status)}
                 </button>

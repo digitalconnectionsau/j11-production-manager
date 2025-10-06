@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import db from './db/index.js';
-import { users } from './db/schema.js';
+import { users, roles, userRoles } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Load environment variables
@@ -47,6 +47,33 @@ async function seedAdminUser() {
     console.log('✅ Admin user created successfully:', adminUser[0]);
     console.log('📧 Email:', adminEmail);
     console.log('🔑 Password:', adminPassword);
+    
+    // Assign super_admin role to the admin user
+    const superAdminRole = await db.select()
+      .from(roles)
+      .where(eq(roles.name, 'super_admin'))
+      .limit(1);
+    
+    if (superAdminRole.length > 0) {
+      // Check if user already has the role
+      const existingRole = await db.select()
+        .from(userRoles)
+        .where(eq(userRoles.userId, adminUser[0].id))
+        .limit(1);
+      
+      if (existingRole.length === 0) {
+        await db.insert(userRoles).values({
+          userId: adminUser[0].id,
+          roleId: superAdminRole[0].id,
+          assignedBy: adminUser[0].id, // Self-assigned
+        });
+        console.log('✅ Super admin role assigned to admin user');
+      } else {
+        console.log('✅ Admin user already has roles assigned');
+      }
+    } else {
+      console.log('⚠️  Super admin role not found. Please run database migrations first.');
+    }
     
   } catch (error) {
     console.error('❌ Error creating admin user:', error);

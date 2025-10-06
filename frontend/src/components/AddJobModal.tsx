@@ -45,6 +45,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
     type: '',
     items: '',
     status: 'not-assigned',
+    statusId: 1, // Default to "not-assigned"
     nestingDate: '',
     machiningDate: '',
     assemblyDate: '',
@@ -225,13 +226,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
     }
   };
 
-  const statusOptions = [
-    { value: 'not-assigned', label: 'Not Assigned' },
-    { value: 'nesting-complete', label: 'Nesting Complete' },
-    { value: 'machining-complete', label: 'Machining Complete' },
-    { value: 'assembly-complete', label: 'Assembly Complete' },
-    { value: 'delivered', label: 'Delivered' }
-  ];
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,6 +246,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
         type: formData.type || null,
         items: formData.items,
         status: formData.status,
+        statusId: formData.statusId,
         nestingDate: formData.nestingDate || null,
         machiningDate: formData.machiningDate || null,
         assemblyDate: formData.assemblyDate || null,
@@ -271,7 +267,8 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
           unit: '',
           type: '',
           items: '',
-          status: 'not-started',
+          status: 'not-assigned',
+          statusId: 1,
           nestingDate: '',
           machiningDate: '',
           assemblyDate: '',
@@ -421,12 +418,19 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ isOpen, onClose, onJobAdded, 
                 id="status"
                 name="status"
                 value={formData.status}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const selectedStatus = jobStatuses.find(s => s.name === e.target.value);
+                  setFormData({ 
+                    ...formData, 
+                    status: e.target.value,
+                    statusId: selectedStatus?.id || 1
+                  });
+                }}
                 className="w-full px-3 py-2 border border-light-grey rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {jobStatuses.map(status => (
+                  <option key={status.id} value={status.name}>
+                    {status.displayName}
                   </option>
                 ))}
               </select>
