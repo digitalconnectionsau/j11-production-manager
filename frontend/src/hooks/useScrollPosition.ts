@@ -10,7 +10,7 @@ export const useScrollPosition = (options: UseScrollPositionOptions = {}) => {
   const {
     key = 'default',
     behavior = 'auto',
-    offsetTop = 80 // Default offset for top navigation bar
+    offsetTop = 60 // Default offset for top navigation bar (TopBar height)
   } = options;
   
   const scrollPositionRef = useRef<number>(0);
@@ -92,4 +92,29 @@ export const useScrollRestoration = (
     
     wasLoadingRef.current = isLoading;
   }, [isLoading, saveScrollPosition, restoreScrollPosition]);
+};
+
+// Hook to prevent scroll to top and ensure minimum scroll position
+export const useMinimumScroll = (minScrollTop: number = 60) => {
+  useEffect(() => {
+    const preventScrollToTop = () => {
+      if (window.pageYOffset < minScrollTop) {
+        window.scrollTo({ top: minScrollTop, behavior: 'auto' });
+      }
+    };
+
+    // Check scroll position periodically
+    const interval = setInterval(preventScrollToTop, 100);
+    
+    // Also check on scroll events
+    window.addEventListener('scroll', preventScrollToTop, { passive: true });
+    
+    // Initial check
+    preventScrollToTop();
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('scroll', preventScrollToTop);
+    };
+  }, [minScrollTop]);
 };
