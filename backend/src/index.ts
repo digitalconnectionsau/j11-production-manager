@@ -83,23 +83,23 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes (CSRF protection applied to state-changing operations)
+// API routes (CSRF protection temporarily disabled - will enable after frontend integration)
 app.use('/api/auth', authRoutes);
-app.use('/api/users', csrfProtection, userRoutes);
-app.use('/api/roles', csrfProtection, roleRoutes);
-app.use('/api/projects', csrfProtection, projectRoutes);
-app.use('/api/clients', csrfProtection, clientRoutes);
-app.use('/api/contacts', csrfProtection, contactsRoutes);
-app.use('/api/jobs', csrfProtection, jobRoutes);
-app.use('/api/job-statuses', csrfProtection, jobStatusRoutes);
-app.use('/api/holidays', csrfProtection, holidaysRoutes);
-app.use('/api/pinned', csrfProtection, pinnedRoutes);
-app.use('/api/lead-times', csrfProtection, leadTimesRoutes);
-app.use('/api/analytics', analyticsRoutes); // Read-only, no CSRF needed
-app.use('/api/user-column-preferences', csrfProtection, userColumnPreferencesRoutes);
-app.use('/api/import', csrfProtection, importRoutes);
-app.use('/api/audit', auditRoutes); // Read-only, no CSRF needed
-app.use('/api/login-activity', loginActivityRoutes); // Read-only, no CSRF needed
+app.use('/api/users', userRoutes);
+app.use('/api/roles', roleRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/contacts', contactsRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/job-statuses', jobStatusRoutes);
+app.use('/api/holidays', holidaysRoutes);
+app.use('/api/pinned', pinnedRoutes);
+app.use('/api/lead-times', leadTimesRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/user-column-preferences', userColumnPreferencesRoutes);
+app.use('/api/import', importRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/login-activity', loginActivityRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
