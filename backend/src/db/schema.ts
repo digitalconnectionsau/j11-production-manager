@@ -40,6 +40,9 @@ export const users = pgTable('users', {
   isActive: boolean('is_active').default(true),
   isBlocked: boolean('is_blocked').default(false),
   lastLogin: timestamp('last_login'),
+  failedLoginAttempts: integer('failed_login_attempts').default(0),
+  lockedUntil: timestamp('locked_until'),
+  lastFailedLogin: timestamp('last_failed_login'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

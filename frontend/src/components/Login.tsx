@@ -156,6 +156,9 @@ const Login: React.FC = () => {
                   <h1 className="text-3xl font-bold text-black">Reset Password</h1>
                 </div>
                 <p className="text-charcoal">Enter your email to receive reset instructions</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Tip: Check your spam/junk folder if you don't see the email within a few minutes
+                </p>
               </div>
 
               <form onSubmit={handlePasswordReset} className="space-y-6">

@@ -106,10 +106,44 @@ router.post('/login', authLimiter, async (req, res) => {
 
     const foundUser = user[0];
 
+    // Check if account is temporarily locked
+    if (foundUser.lockedUntil && new Date(foundUser.lockedUntil) > new Date()) {
+      const lockTimeRemaining = Math.ceil((new Date(foundUser.lockedUntil).getTime() - Date.now()) / 60000);
+      
+      await logAuthActivity({
+        userId: foundUser.id,
+        email: foundUser.email,
+        action: AuthAction.LOGIN_FAILED,
+        failureReason: 'account_locked',
+        ipAddress,
+        userAgent,
+      });
+      
+      return res.status(403).json({ 
+        error: 'Account temporarily locked',
+        message: `Too many failed login attempts. Account is locked for ${lockTimeRemaining} more minute(s).`,
+        lockedUntil: foundUser.lockedUntil,
+        suggestion: 'Please try again later or use "Forgot Password" to reset your password'
+      });
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, foundUser.password);
 
     if (!isPasswordValid) {
+      // Increment failed login attempts
+      const newFailedAttempts = (foundUser.failedLoginAttempts || 0) + 1;
+      const shouldLock = newFailedAttempts >= 5;
+      const lockedUntil = shouldLock ? new Date(Date.now() + 30 * 60 * 1000) : null; // 30 minutes
+      
+      await db.update(users)
+        .set({ 
+          failedLoginAttempts: newFailedAttempts,
+          lastFailedLogin: new Date(),
+          lockedUntil: lockedUntil,
+        })
+        .where(eq(users.id, foundUser.id));
+
       // Log failed login attempt
       await logAuthActivity({
         userId: foundUser.id,
@@ -120,9 +154,22 @@ router.post('/login', authLimiter, async (req, res) => {
         userAgent,
       });
       
+      if (shouldLock) {
+        return res.status(403).json({ 
+          error: 'Account locked',
+          message: 'Too many failed login attempts. Your account has been locked for 30 minutes.',
+          lockedUntil: lockedUntil,
+          attemptsRemaining: 0,
+          suggestion: 'Use "Forgot Password" to reset your password or wait 30 minutes'
+        });
+      }
+      
       return res.status(401).json({ 
         error: 'Incorrect password',
-        suggestion: 'Please check your password or use "Forgot Password" to reset it'
+        attemptsRemaining: 5 - newFailedAttempts,
+        suggestion: newFailedAttempts >= 3 
+          ? `Warning: Account will be locked after ${5 - newFailedAttempts} more failed attempt(s)`
+          : 'Please check your password or use "Forgot Password" to reset it'
       });
     }
 
@@ -180,9 +227,14 @@ router.post('/login', authLimiter, async (req, res) => {
       userAgent,
     });
 
-    // Update last login timestamp
+    // Update last login timestamp and reset failed attempts
     await db.update(users)
-      .set({ lastLogin: new Date() })
+      .set({ 
+        lastLogin: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastFailedLogin: null,
+      })
       .where(eq(users.id, foundUser.id));
 
     res.json({
