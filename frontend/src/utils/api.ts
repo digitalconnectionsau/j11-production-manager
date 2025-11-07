@@ -6,6 +6,20 @@ import { useState } from 'react';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+/**
+ * Global auth callback for handling unauthorized responses
+ * This will be set by AuthContext to trigger logout on 401/403
+ */
+let onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedCallback = (callback: () => void) => {
+  onUnauthorized = callback;
+};
+
+export const clearUnauthorizedCallback = () => {
+  onUnauthorized = null;
+};
+
 export const API_ENDPOINTS = {
   // Auth
   login: '/api/auth/login',
@@ -99,6 +113,12 @@ export const apiRequest = async <T = any>(
     }
 
     if (!response.ok) {
+      // Handle unauthorized/forbidden responses
+      if ((response.status === 401 || response.status === 403) && onUnauthorized) {
+        console.warn('🔒 Session expired or unauthorized. Redirecting to login...');
+        onUnauthorized(); // Trigger logout and redirect
+      }
+
       // Return structured error response
       return {
         success: false,

@@ -27,5 +27,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 };
 
 export const generateToken = (user: { id: number; email: string; name: string }) => {
-  return jwt.sign(user, process.env.JWT_SECRET!, { expiresIn: '24h' });
+  // Token expires in 30 minutes for security
+  // Users will be auto-logged out after 30 minutes of inactivity
+  return jwt.sign(user, process.env.JWT_SECRET!, { expiresIn: '30m' });
 };
