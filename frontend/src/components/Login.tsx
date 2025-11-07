@@ -36,10 +36,16 @@ const Login: React.FC = () => {
     setIsResetting(true);
 
     try {
-      await apiRequest(API_ENDPOINTS.forgotPassword, {
+      const response = await apiRequest(API_ENDPOINTS.forgotPassword, {
         method: 'POST',
         body: JSON.stringify({ email: resetEmail }),
       });
+
+      // Check if password reset was successful
+      if (!response.success) {
+        setResetMessage(response.error || 'Failed to send reset email. Please try again.');
+        return;
+      }
 
       setResetMessage('Password reset instructions have been sent to your email address.');
       setResetEmail('');

@@ -105,6 +105,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      // Check if login was successful
+      if (!response.success) {
+        console.error('Login failed:', response.error);
+        return { 
+          success: false, 
+          error: response.error || 'Login failed' 
+        };
+      }
+
+      // Only set token and user if response has data
+      if (!response.data || !response.data.token || !response.data.user) {
+        console.error('Login response missing data');
+        return { 
+          success: false, 
+          error: 'Invalid response from server' 
+        };
+      }
+
       setToken(response.data.token);
       setUser(response.data.user);
       
