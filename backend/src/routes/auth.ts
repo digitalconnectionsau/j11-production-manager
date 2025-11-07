@@ -7,6 +7,14 @@ import db from '../db/index.js';
 import { users, passwordResetTokens } from '../db/schema.js';
 import { generateToken, authenticateToken, type AuthRequest } from '../middleware/auth.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
+import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { 
+  logAuthActivity, 
+  AuthAction, 
+  LoginFailureReason,
+  getClientIp,
+  getUserAgent
+} from '../services/authActivityService.js';
 
 const router = Router();
 
@@ -16,11 +24,20 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// Password validation: min 8 chars, at least one uppercase, one lowercase, one number, one special char
+const passwordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(255)
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
 const registerSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100), 
   email: z.string().email().max(255),
-  password: z.string().min(6).max(255),
+  password: passwordSchema,
   username: z.string().min(1).max(100).optional(),
 });
 
@@ -30,11 +47,11 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  password: z.string().min(6).max(255),
+  password: passwordSchema,
 });
 
 // POST /api/auth/login - User login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
@@ -57,6 +74,8 @@ router.post('/login', async (req, res) => {
     }
 
     const { email, password } = validation.data;
+    const ipAddress = getClientIp(req);
+    const userAgent = getUserAgent(req);
 
     // Find user by email or username
     const user = await db.select()
@@ -70,6 +89,15 @@ router.post('/login', async (req, res) => {
       .limit(1);
 
     if (user.length === 0) {
+      // Log failed login attempt
+      await logAuthActivity({
+        email,
+        action: AuthAction.LOGIN_FAILED,
+        failureReason: LoginFailureReason.USER_NOT_FOUND,
+        ipAddress,
+        userAgent,
+      });
+      
       return res.status(401).json({ 
         error: 'No account found with this email or username',
         suggestion: 'Please check your email/username or create a new account'
@@ -82,6 +110,16 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, foundUser.password);
 
     if (!isPasswordValid) {
+      // Log failed login attempt
+      await logAuthActivity({
+        userId: foundUser.id,
+        email: foundUser.email,
+        action: AuthAction.LOGIN_FAILED,
+        failureReason: LoginFailureReason.WRONG_PASSWORD,
+        ipAddress,
+        userAgent,
+      });
+      
       return res.status(401).json({ 
         error: 'Incorrect password',
         suggestion: 'Please check your password or use "Forgot Password" to reset it'
@@ -90,6 +128,16 @@ router.post('/login', async (req, res) => {
 
     // Check if user account is blocked or inactive
     if (foundUser.isBlocked) {
+      // Log blocked account attempt
+      await logAuthActivity({
+        userId: foundUser.id,
+        email: foundUser.email,
+        action: AuthAction.LOGIN_FAILED,
+        failureReason: LoginFailureReason.ACCOUNT_BLOCKED,
+        ipAddress,
+        userAgent,
+      });
+      
       return res.status(403).json({ 
         error: 'Account blocked',
         message: 'Your account has been blocked due to security reasons. Please contact an administrator.',
@@ -98,6 +146,16 @@ router.post('/login', async (req, res) => {
     }
 
     if (!foundUser.isActive) {
+      // Log inactive account attempt
+      await logAuthActivity({
+        userId: foundUser.id,
+        email: foundUser.email,
+        action: AuthAction.LOGIN_FAILED,
+        failureReason: LoginFailureReason.ACCOUNT_INACTIVE,
+        ipAddress,
+        userAgent,
+      });
+      
       return res.status(403).json({ 
         error: 'Account inactive',
         message: 'Your account is currently inactive. Please contact an administrator to activate your account.',
@@ -112,6 +170,20 @@ router.post('/login', async (req, res) => {
       email: foundUser.email,
       name: fullName,
     });
+
+    // Log successful login
+    await logAuthActivity({
+      userId: foundUser.id,
+      email: foundUser.email,
+      action: AuthAction.LOGIN_SUCCESS,
+      ipAddress,
+      userAgent,
+    });
+
+    // Update last login timestamp
+    await db.update(users)
+      .set({ lastLogin: new Date() })
+      .where(eq(users.id, foundUser.id));
 
     res.json({
       message: 'Login successful',
@@ -130,7 +202,7 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/register - User registration
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const validation = registerSchema.safeParse(req.body);
     if (!validation.success) {
@@ -399,7 +471,7 @@ router.post('/logout', authenticateToken, (req, res) => {
 });
 
 // POST /api/auth/forgot-password - Request password reset
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   try {
     console.log('🔐 Password reset request received for:', req.body?.email);
     
@@ -443,6 +515,9 @@ router.post('/forgot-password', async (req, res) => {
 
     const foundUser = user[0];
     console.log('👤 User found:', foundUser.username || foundUser.email);
+    
+    const ipAddress = getClientIp(req);
+    const userAgent = getUserAgent(req);
 
     // Check if user account is active
     if (foundUser.isBlocked) {
@@ -484,6 +559,15 @@ router.post('/forgot-password', async (req, res) => {
     try {
       await sendPasswordResetEmail(email, resetToken);
       console.log(`✅ Password reset email sent to ${email} for user: ${userName}`);
+      
+      // Log password reset request
+      await logAuthActivity({
+        userId: foundUser.id,
+        email: foundUser.email,
+        action: AuthAction.PASSWORD_RESET_REQUEST,
+        ipAddress,
+        userAgent,
+      });
     } catch (error) {
       console.error('❌ Failed to send password reset email to:', email, error);
       return res.status(500).json({ 
@@ -508,7 +592,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // POST /api/auth/reset-password - Reset password with token
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const validation = resetPasswordSchema.safeParse(req.body);
     if (!validation.success) {
@@ -618,6 +702,17 @@ router.post('/reset-password', async (req, res) => {
     await db.update(passwordResetTokens)
       .set({ used: true })
       .where(eq(passwordResetTokens.id, resetToken.id));
+
+    // Log successful password reset
+    const ipAddress = getClientIp(req);
+    const userAgent = getUserAgent(req);
+    await logAuthActivity({
+      userId: user.id,
+      email: user.email,
+      action: AuthAction.PASSWORD_RESET_SUCCESS,
+      ipAddress,
+      userAgent,
+    });
 
     res.json({ 
       message: 'Password has been reset successfully!',

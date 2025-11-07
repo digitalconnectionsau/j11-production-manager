@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
+import { validatePasswordStrength } from '../utils/passwordValidation';
 
 interface ResetPasswordProps {
   token: string;
@@ -25,9 +27,10 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) => {
       return;
     }
 
-    // Validate password length
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Validate password strength
+    const strength = validatePasswordStrength(newPassword);
+    if (!strength.isValid) {
+      setError('Password does not meet security requirements');
       return;
     }
 
@@ -98,11 +101,12 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ token, onBack }) => {
                 autoComplete="new-password"
                 required
                 className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="New password (min 6 characters)"
+                placeholder="New password (min 8 characters)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={isLoading}
               />
+              <PasswordStrengthIndicator password={newPassword} showRequirements={true} />
             </div>
             <div>
               <label htmlFor="confirmPassword" className="sr-only">

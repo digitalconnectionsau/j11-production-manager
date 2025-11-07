@@ -216,6 +216,19 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Login activity table for tracking authentication events
+export const loginActivity = pgTable('login_activity', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull(),
+  action: varchar('action', { length: 50 }).notNull(), // login_success, login_failed, logout, password_reset_request, password_reset_success
+  ipAddress: varchar('ip_address', { length: 45 }), // Supports IPv4 and IPv6
+  userAgent: text('user_agent'),
+  failureReason: varchar('failure_reason', { length: 255 }), // For failed attempts
+  timestamp: timestamp('timestamp').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -249,3 +262,5 @@ export type UserColumnPreference = typeof userColumnPreferences.$inferSelect;
 export type NewUserColumnPreference = typeof userColumnPreferences.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+export type LoginActivity = typeof loginActivity.$inferSelect;
+export type NewLoginActivity = typeof loginActivity.$inferInsert;
